@@ -89,6 +89,14 @@ export const InterviewProvider = ({ children }) => {
       const submittedAnswers = response.data.data.answers;
 
       setAnswers(submittedAnswers);
+
+      // Update interview status to indicate answers are submitted
+      setInterviews(prev => prev.map(interview => 
+        interview._id === interviewId 
+          ? { ...interview, status: "answers_submitted" }
+          : interview
+      ));
+
       toast.success("All answers submitted successfully!");
       return {
         success: true,
@@ -124,12 +132,28 @@ export const InterviewProvider = ({ children }) => {
       setError(null);
       setLoading(true);
 
-      await interviewAPI.complete(interviewId);
+      const response = await interviewAPI.complete(interviewId);
+      const updatedInterview = response.data?.data?.interview;
 
       // Update current interview status
       if (currentInterview && currentInterview._id === interviewId) {
-        setCurrentInterview((prev) => ({ ...prev, status: "completed" }));
+        setCurrentInterview((prev) => ({ 
+          ...prev, 
+          status: "completed",
+          completedAt: updatedInterview?.completedAt || new Date().toISOString()
+        }));
       }
+
+      // Update interviews list
+      setInterviews(prev => prev.map(interview => 
+        interview._id === interviewId 
+          ? { 
+              ...interview, 
+              status: "completed",
+              completedAt: updatedInterview?.completedAt || new Date().toISOString()
+            }
+          : interview
+      ));
 
       return { success: true };
     } catch (error) {
@@ -151,6 +175,23 @@ export const InterviewProvider = ({ children }) => {
       const result = response.data.data.result;
 
       setResults(result);
+
+      // Update interview with average score if available
+      if (result.averageScore !== undefined) {
+        setInterviews(prev => prev.map(interview => 
+          interview._id === interviewId 
+            ? { ...interview, averageScore: result.averageScore }
+            : interview
+        ));
+
+        if (currentInterview && currentInterview._id === interviewId) {
+          setCurrentInterview(prev => ({ 
+            ...prev, 
+            averageScore: result.averageScore 
+          }));
+        }
+      }
+
       toast.success("Results generated successfully!");
       return { success: true, result };
     } catch (error) {
@@ -210,10 +251,16 @@ export const InterviewProvider = ({ children }) => {
       setLoading(true);
 
       const response = await interviewAPI.getAll(params);
-      const interviewsData = response.data.data.interviews;
+      const responseData = response.data.data;
+      const interviewsData = responseData.interviews || responseData;
+      const pagination = responseData.pagination || null;
 
       setInterviews(interviewsData);
-      return { success: true, interviews: interviewsData };
+      return { 
+        success: true, 
+        interviews: interviewsData,
+        pagination: pagination
+      };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Failed to fetch interviews";
@@ -334,6 +381,19 @@ export const InterviewProvider = ({ children }) => {
     setError(null);
   };
 
+  const refreshInterviews = async () => {
+    try {
+      const response = await interviewAPI.getAll({ sort: "-createdAt" });
+      const responseData = response.data.data;
+      const interviewsData = responseData.interviews || responseData;
+      setInterviews(interviewsData);
+      return { success: true, interviews: interviewsData };
+    } catch (error) {
+      console.error('Failed to refresh interviews:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     currentInterview,
     interviews,
@@ -355,6 +415,7 @@ export const InterviewProvider = ({ children }) => {
     deleteInterview,
     clearError,
     resetInterview,
+    refreshInterviews,
   };
 
   return (

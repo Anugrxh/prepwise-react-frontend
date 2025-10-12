@@ -23,7 +23,7 @@ import ProgressBar from "../components/ProgressBar.jsx";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { interviews, getAllInterviews, getInterviewStats, loading } = useInterview();
+  const { interviews, getAllInterviews, getInterviewStats, refreshInterviews, loading } = useInterview();
   const [stats, setStats] = useState({
     totalInterviews: 0,
     completedInterviews: 0,
@@ -45,6 +45,28 @@ const Dashboard = () => {
     loadDashboardData();
   }, [currentPage]);
 
+  // Refresh data when interviews array changes
+  useEffect(() => {
+    if (interviews.length > 0) {
+      // Only reload if we have interviews and the page is visible
+      if (document.visibilityState === 'visible') {
+        loadDashboardData();
+      }
+    }
+  }, [interviews.length]);
+
+  // Auto-refresh when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadDashboardData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   const loadDashboardData = async () => {
     try {
       setLoadingStats(true);
@@ -61,7 +83,7 @@ const Dashboard = () => {
       ]);
 
       if (interviewsResult.success) {
-        const interviewsData = interviewsResult.interviews;
+        const interviewsData = interviewsResult.interviews || [];
         const pagination = interviewsResult.pagination || {};
         
         setTotalInterviews(pagination.total || interviewsData.length);
@@ -77,24 +99,35 @@ const Dashboard = () => {
           interview => new Date(interview.createdAt) >= oneWeekAgo
         );
 
+        // Calculate scores from completed interviews
+        const completedWithScores = completed.filter(interview => 
+          interview.averageScore !== undefined && interview.averageScore !== null
+        );
+
+        const avgScore = completedWithScores.length > 0
+          ? Math.round(
+              completedWithScores.reduce(
+                (sum, interview) => sum + interview.averageScore,
+                0
+              ) / completedWithScores.length
+            )
+          : 0;
+
+        const bestScore = completedWithScores.length > 0
+          ? Math.max(...completedWithScores.map(interview => interview.averageScore))
+          : 0;
+
+        const passRate = completedWithScores.length > 0
+          ? Math.round((completedWithScores.filter(interview => interview.averageScore >= 60).length / completedWithScores.length) * 100)
+          : 0;
+
         setStats(prev => ({
           ...prev,
           totalInterviews: pagination.total || interviewsData.length,
           completedInterviews: completed.length,
-          averageScore: completed.length > 0
-            ? Math.round(
-                completed.reduce(
-                  (sum, interview) => sum + (interview.averageScore || 75),
-                  0
-                ) / completed.length
-              )
-            : 0,
-          bestScore: completed.length > 0
-            ? Math.max(...completed.map(interview => interview.averageScore || 75))
-            : 0,
-          passRate: completed.length > 0
-            ? Math.round((completed.filter(interview => (interview.averageScore || 75) >= 60).length / completed.length) * 100)
-            : 0,
+          averageScore: avgScore,
+          bestScore: bestScore,
+          passRate: passRate,
           recentInterviews: interviewsData,
           weeklyProgress: weeklyInterviews.length,
           currentStreak: calculateStreak(interviewsData),
@@ -339,11 +372,27 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-gray-900">
             Recent Interviews
           </h2>
-          <Link to="/profile?tab=history">
-            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
-              View all
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={loadDashboardData}
+              disabled={loadingStats}
+            >
+              {loadingStats ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
             </Button>
-          </Link>
+            <Link to="/profile?tab=history">
+              <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+                View all
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {stats.recentInterviews.length === 0 ? (
@@ -380,6 +429,17 @@ const Dashboard = () => {
                         {interview.techStack?.join(", ") || "General Interview"}
                       </h3>
                       {getStatusBadge(interview.status)}
+                      {interview.status === "completed" && interview.averageScore && (
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          interview.averageScore >= 80 
+                            ? 'bg-success-100 text-success-800' 
+                            : interview.averageScore >= 60 
+                            ? 'bg-warning-100 text-warning-800' 
+                            : 'bg-danger-100 text-danger-800'
+                        }`}>
+                          {interview.averageScore}%
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <div className="flex items-center space-x-1">
@@ -394,6 +454,12 @@ const Dashboard = () => {
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(interview.createdAt)}</span>
                       </div>
+                      {interview.status === "completed" && interview.completedAt && (
+                        <div className="flex items-center space-x-1">
+                          <Award className="w-3 h-3" />
+                          <span>Completed {formatDate(interview.completedAt)}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 ml-4">
