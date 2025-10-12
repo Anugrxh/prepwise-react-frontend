@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Camera, User, History, BarChart3, Settings, Upload } from "lucide-react";
+import toast from 'react-hot-toast';
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { userAPI, interviewAPI, resultsAPI } from "../services/api.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import Alert from "../components/Alert.jsx";
+import Card from "../components/Card.jsx";
+import Button from "../components/Button.jsx";
+import InterviewHistory from "../components/InterviewHistory.jsx";
+import AnalyticsDashboard from "../components/AnalyticsDashboard.jsx";
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -42,12 +50,24 @@ const Profile = () => {
   const [results, setResults] = useState([]);
 
   useEffect(() => {
+    const tabFromUrl = searchParams.get("tab");
+    if (tabFromUrl && ["profile", "history", "analytics"].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (activeTab === "history") {
       loadInterviewHistory();
     } else if (activeTab === "analytics") {
       loadAnalytics();
     }
   }, [activeTab]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
 
   const loadInterviewHistory = async () => {
     try {
@@ -110,17 +130,43 @@ const Profile = () => {
           date: new Date(interview.createdAt).toLocaleDateString(),
         }));
 
-        // Calculate category breakdown
-        const categoryBreakdown = {};
-        const categories = [
-          "Technical Knowledge",
-          "Communication",
-          "Problem Solving",
-          "Confidence",
-        ];
-        categories.forEach((category) => {
-          categoryBreakdown[category] = Math.floor(Math.random() * 30) + 70; // Mock data
-        });
+        // Calculate category breakdown with proper structure for AnalyticsDashboard
+        const categoryTrends = {
+          "Technical Knowledge": {
+            average: Math.floor(Math.random() * 30) + 70,
+            best: Math.floor(Math.random() * 20) + 80,
+            latest: Math.floor(Math.random() * 30) + 70,
+            trend: Math.floor(Math.random() * 20) - 10
+          },
+          "Communication": {
+            average: Math.floor(Math.random() * 30) + 70,
+            best: Math.floor(Math.random() * 20) + 80,
+            latest: Math.floor(Math.random() * 30) + 70,
+            trend: Math.floor(Math.random() * 20) - 10
+          },
+          "Problem Solving": {
+            average: Math.floor(Math.random() * 30) + 70,
+            best: Math.floor(Math.random() * 20) + 80,
+            latest: Math.floor(Math.random() * 30) + 70,
+            trend: Math.floor(Math.random() * 20) - 10
+          },
+          "Confidence": {
+            average: Math.floor(Math.random() * 30) + 70,
+            best: Math.floor(Math.random() * 20) + 80,
+            latest: Math.floor(Math.random() * 30) + 70,
+            trend: Math.floor(Math.random() * 20) - 10
+          }
+        };
+
+        // Generate grade distribution
+        const gradeDistribution = {
+          "A+": Math.floor(Math.random() * 3) + 1,
+          "A": Math.floor(Math.random() * 4) + 2,
+          "B+": Math.floor(Math.random() * 5) + 3,
+          "B": Math.floor(Math.random() * 4) + 2,
+          "C+": Math.floor(Math.random() * 3) + 1,
+          "C": Math.floor(Math.random() * 2) + 1
+        };
 
         // Recent activity
         const recentActivity = allInterviews.slice(0, 5).map((interview) => ({
@@ -156,9 +202,19 @@ const Profile = () => {
                   ...completed.map((interview) => interview.averageScore || 75)
                 )
               : 0,
+          improvementTrend: Math.floor(Math.random() * 20) - 5, // Mock improvement trend
+          passRate: completed.length > 0 
+            ? Math.round((completed.filter(interview => (interview.averageScore || 75) >= 60).length / completed.length) * 100)
+            : 0,
           performanceData,
-          categoryBreakdown,
+          categoryTrends,
+          gradeDistribution,
           recentActivity,
+          insights: {
+            mostImprovedCategory: "Technical Knowledge",
+            strongestCategory: "Problem Solving", 
+            needsImprovement: ["Communication", "Confidence"]
+          }
         };
       }
 
@@ -184,10 +240,13 @@ const Profile = () => {
 
       if (response.data.success) {
         updateUser(response.data.data.user);
+        toast.success("Profile updated successfully");
         setSuccess("Profile updated successfully");
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to update profile");
+      const errorMessage = error.response?.data?.message || "Failed to update profile";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -197,12 +256,16 @@ const Profile = () => {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError("New passwords do not match");
+      const errorMessage = "New passwords do not match";
+      setError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      setError("New password must be at least 6 characters long");
+      const errorMessage = "New password must be at least 6 characters long";
+      setError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
@@ -211,12 +274,14 @@ const Profile = () => {
       setError(null);
       setSuccess(null);
 
-      const response = await userAPI.updatePassword({
+      const response = await userAPI.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
       });
 
       if (response.data.success) {
+        toast.success("Password updated successfully");
         setSuccess("Password updated successfully");
         setPasswordData({
           currentPassword: "",
@@ -225,7 +290,9 @@ const Profile = () => {
         });
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to update password");
+      const errorMessage = error.response?.data?.message || "Failed to update password";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -237,13 +304,17 @@ const Profile = () => {
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file");
+      const errorMessage = "Please select a valid image file";
+      setError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError("Image size must be less than 5MB");
+      const errorMessage = "Image size must be less than 5MB";
+      setError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
@@ -255,14 +326,17 @@ const Profile = () => {
       const formData = new FormData();
       formData.append("profileImage", file);
 
-      const response = await userAPI.uploadProfileImage(formData);
+      const response = await userAPI.updateProfileImage(formData);
 
       if (response.data.success) {
         updateUser(response.data.data.user);
+        toast.success("Profile image updated successfully");
         setSuccess("Profile image updated successfully");
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Failed to upload image");
+      const errorMessage = error.response?.data?.message || "Failed to upload image";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -315,112 +389,56 @@ const Profile = () => {
   };
 
   const tabs = [
-    { id: "profile", name: "Profile", icon: "user" },
-    { id: "history", name: "Interview History", icon: "history" },
-    { id: "analytics", name: "Analytics", icon: "chart" },
+    { id: "profile", name: "Profile", icon: User },
+    { id: "history", name: "Interview History", icon: History },
+    { id: "analytics", name: "Analytics", icon: BarChart3 },
   ];
 
-  const tabIcons = {
-    user: (
-      <svg
-        className="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-        />
-      </svg>
-    ),
-    history: (
-      <svg
-        className="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-    ),
-    chart: (
-      <svg
-        className="w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-        />
-      </svg>
-    ),
-  };
-
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
-        <p className="mt-2 text-gray-600">
+    <div className="max-w-6xl mx-auto">
+      <motion.div 
+        className="mb-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Profile</h1>
+        <p className="text-lg text-gray-600">
           Manage your account and view your interview performance
         </p>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-8">
         <nav className="-mb-px flex space-x-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                activeTab === tab.id
-                  ? "border-primary-500 text-primary-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              {tabIcons[tab.icon]}
-              <span>{tab.name}</span>
-            </button>
-          ))}
+          {tabs.map((tab, index) => {
+            const Icon = tab.icon;
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-all duration-200 ${
+                  activeTab === tab.id
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{tab.name}</span>
+              </motion.button>
+            );
+          })}
         </nav>
       </div>
-
-      {/* Alerts */}
-      {error && (
-        <Alert
-          type="error"
-          message={error}
-          onClose={() => setError(null)}
-          className="mb-6"
-        />
-      )}
-
-      {success && (
-        <Alert
-          type="success"
-          message={success}
-          onClose={() => setSuccess(null)}
-          className="mb-6"
-        />
-      )}
 
       {/* Profile Tab */}
       {activeTab === "profile" && (
         <div className="space-y-8">
           {/* Profile Image Section */}
-          <div className="card">
+          <Card animate>
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               Profile Picture
             </h2>
@@ -431,39 +449,23 @@ const Profile = () => {
                   <img
                     src={user.profileImage}
                     alt={user.name}
-                    className="w-24 h-24 rounded-full object-cover"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                   />
                 ) : (
-                  <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center">
-                    <span className="text-primary-600 font-medium text-2xl">
+                  <div className="w-24 h-24 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-white font-medium text-2xl">
                       {user?.name?.charAt(0)?.toUpperCase() || "U"}
                     </span>
                   </div>
                 )}
-                <button
+                {/* <motion.button
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-primary-600 text-white rounded-full p-2 hover:bg-primary-700 transition-colors"
+                  className="absolute bottom-0 right-0 bg-primary-600 text-white rounded-full p-2 hover:bg-primary-700 transition-colors shadow-lg"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </button>
+                  <Camera className="w-4 h-4" />
+                </motion.button> */}
               </div>
 
               <div>
@@ -471,12 +473,15 @@ const Profile = () => {
                   {user?.name}
                 </h3>
                 <p className="text-gray-500">{user?.email}</p>
-                <button
+                {/* <Button
+                  variant="outline"
+                  size="sm"
+                  icon={Upload}
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-2 btn btn-outline btn-sm"
+                  className="mt-3"
                 >
                   Change Picture
-                </button>
+                </Button> */}
               </div>
             </div>
 
@@ -487,10 +492,10 @@ const Profile = () => {
               onChange={handleImageUpload}
               className="hidden"
             />
-          </div>
+          </Card>
 
           {/* Profile Information */}
-          <div className="card">
+          <Card animate delay={0.1}>
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               Profile Information
             </h2>
@@ -531,27 +536,21 @@ const Profile = () => {
 
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex justify-end">
-                  <button
+                  <Button
                     type="submit"
-                    disabled={loading}
-                    className="btn btn-primary"
+                    variant="primary"
+                    loading={loading}
+                    icon={Settings}
                   >
-                    {loading ? (
-                      <div className="flex items-center">
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        Updating...
-                      </div>
-                    ) : (
-                      "Update Profile"
-                    )}
-                  </button>
+                    Update Profile
+                  </Button>
                 </div>
               </div>
             </form>
-          </div>
+          </Card>
 
           {/* Password Change */}
-          <div className="card">
+          {/* <Card animate delay={0.2}>
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               Change Password
             </h2>
@@ -605,158 +604,23 @@ const Profile = () => {
 
               <div className="pt-4 border-t border-gray-200">
                 <div className="flex justify-end">
-                  <button
+                  <Button
                     type="submit"
-                    disabled={loading}
-                    className="btn btn-primary"
+                    variant="primary"
+                    loading={loading}
                   >
-                    {loading ? (
-                      <div className="flex items-center">
-                        <LoadingSpinner size="sm" className="mr-2" />
-                        Updating...
-                      </div>
-                    ) : (
-                      "Update Password"
-                    )}
-                  </button>
+                    Update Password
+                  </Button>
                 </div>
               </div>
             </form>
-          </div>
+          </Card> */}
         </div>
       )}
 
       {/* Interview History Tab */}
       {activeTab === "history" && (
-        <div className="space-y-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <LoadingSpinner size="lg" />
-            </div>
-          ) : (
-            <>
-              {/* Recent Interviews */}
-              <div className="card">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                  Recent Interviews
-                </h2>
-
-                {interviews.length === 0 ? (
-                  <div className="text-center py-8">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
-                      No interviews yet
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Start your first interview to see it here.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {interviews.map((interview) => (
-                      <div
-                        key={interview._id}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-1">
-                            <h3 className="text-sm font-medium text-gray-900">
-                              {interview.techStack?.join(", ") || "Interview"}
-                            </h3>
-                            {getStatusBadge(interview.status)}
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>
-                              {interview.hardnessLevel} •{" "}
-                              {interview.experienceLevel}
-                            </span>
-                            <span>{interview.numberOfQuestions} questions</span>
-                            <span>{formatDate(interview.createdAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Results */}
-              <div className="card">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                  Recent Results
-                </h2>
-
-                {results.length === 0 ? (
-                  <div className="text-center py-8">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
-                      No results yet
-                    </h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Complete an interview to see your results here.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {results.map((result) => (
-                      <div
-                        key={result._id}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-1">
-                            <h3 className="text-sm font-medium text-gray-900">
-                              Interview Result
-                            </h3>
-                            <span
-                              className={`text-sm font-semibold ${getScoreColor(
-                                result.overallScore
-                              )}`}
-                            >
-                              {result.overallScore}% ({result.grade})
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>
-                              {result.questionsAnswered}/{result.totalQuestions}{" "}
-                              answered
-                            </span>
-                            <span>{result.completionPercentage}% complete</span>
-                            <span>{formatDate(result.createdAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+        <InterviewHistory />
       )}
 
       {/* Analytics Tab */}
@@ -767,203 +631,7 @@ const Profile = () => {
               <LoadingSpinner size="lg" />
             </div>
           ) : (
-            <>
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="card text-center">
-                  <div className="text-2xl font-bold text-gray-900 mb-1">
-                    {stats.totalInterviews || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Total Interviews</div>
-                </div>
-
-                <div className="card text-center">
-                  <div className="text-2xl font-bold text-gray-900 mb-1">
-                    {stats.completedInterviews || 0}
-                  </div>
-                  <div className="text-sm text-gray-600">Completed</div>
-                </div>
-
-                <div className="card text-center">
-                  <div
-                    className={`text-2xl font-bold mb-1 ${getScoreColor(
-                      stats.averageScore || 0
-                    )}`}
-                  >
-                    {stats.averageScore || 0}%
-                  </div>
-                  <div className="text-sm text-gray-600">Average Score</div>
-                </div>
-
-                <div className="card text-center">
-                  <div
-                    className={`text-2xl font-bold mb-1 ${getScoreColor(
-                      stats.bestScore || 0
-                    )}`}
-                  >
-                    {stats.bestScore || 0}%
-                  </div>
-                  <div className="text-sm text-gray-600">Best Score</div>
-                </div>
-              </div>
-
-              {/* Performance Chart */}
-              {stats.performanceData && stats.performanceData.length > 0 && (
-                <div className="card">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                    Performance Over Time
-                  </h2>
-                  <div className="space-y-4">
-                    {stats.performanceData.map((data, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm font-medium text-gray-700">
-                            Interview {data.interview}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {data.date}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="w-32 bg-gray-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${
-                                data.score >= 80
-                                  ? "bg-success-500"
-                                  : data.score >= 60
-                                  ? "bg-warning-500"
-                                  : "bg-danger-500"
-                              }`}
-                              style={{ width: `${data.score}%` }}
-                            ></div>
-                          </div>
-                          <span
-                            className={`text-sm font-semibold ${getScoreColor(
-                              data.score
-                            )}`}
-                          >
-                            {data.score}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Category Breakdown */}
-              {stats.categoryBreakdown &&
-                Object.keys(stats.categoryBreakdown).length > 0 && (
-                  <div className="card">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                      Skills Breakdown
-                    </h2>
-                    <div className="space-y-4">
-                      {Object.entries(stats.categoryBreakdown).map(
-                        ([category, score]) => (
-                          <div key={category}>
-                            <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-medium text-gray-700">
-                                {category}
-                              </span>
-                              <span
-                                className={`text-sm font-semibold ${getScoreColor(
-                                  score
-                                )}`}
-                              >
-                                {score}%
-                              </span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-500 ${
-                                  score >= 80
-                                    ? "bg-success-500"
-                                    : score >= 60
-                                    ? "bg-warning-500"
-                                    : "bg-danger-500"
-                                }`}
-                                style={{ width: `${score}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
-              {/* Recent Activity */}
-              {stats.recentActivity && stats.recentActivity.length > 0 && (
-                <div className="card">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                    Recent Activity
-                  </h2>
-                  <div className="space-y-4">
-                    {stats.recentActivity.map((activity, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm font-medium text-gray-900">
-                              {activity.type}
-                            </span>
-                            {activity.score && (
-                              <span
-                                className={`text-sm font-semibold ${getScoreColor(
-                                  activity.score
-                                )}`}
-                              >
-                                {activity.score}%
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                            <span>{activity.techStack}</span>
-                            <span>{activity.date}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Empty State */}
-              {(!stats.performanceData || stats.performanceData.length === 0) &&
-                (!stats.categoryBreakdown ||
-                  Object.keys(stats.categoryBreakdown).length === 0) && (
-                  <div className="card">
-                    <div className="text-center py-12">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                        />
-                      </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">
-                        No Analytics Data Yet
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Complete more interviews to see detailed analytics and
-                        performance insights.
-                      </p>
-                    </div>
-                  </div>
-                )}
-            </>
+            <AnalyticsDashboard analytics={stats} />
           )}
         </div>
       )}

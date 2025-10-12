@@ -1,62 +1,156 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { 
+  Plus, 
+  TrendingUp, 
+  Target, 
+  Clock, 
+  Award,
+  BookOpen,
+  BarChart3,
+  Calendar,
+  ArrowRight
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useInterview } from "../contexts/InterviewContext.jsx";
+import { userAPI } from "../services/api.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import Alert from "../components/Alert.jsx";
+import Card from "../components/Card.jsx";
+import Button from "../components/Button.jsx";
+import Badge from "../components/Badge.jsx";
+import ProgressBar from "../components/ProgressBar.jsx";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { interviews, getAllInterviews, loading, error, clearError } =
-    useInterview();
+  const { interviews, getAllInterviews, getInterviewStats, loading } = useInterview();
   const [stats, setStats] = useState({
     totalInterviews: 0,
     completedInterviews: 0,
     averageScore: 0,
+    bestScore: 0,
+    passRate: 0,
     recentInterviews: [],
+    weeklyProgress: 0,
+    monthlyGoal: 10,
+    currentStreak: 0,
   });
+  const [userStats, setUserStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [interviewsPerPage] = useState(5);
+  const [totalInterviews, setTotalInterviews] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [currentPage]);
 
   const loadDashboardData = async () => {
-    const result = await getAllInterviews({ limit: 10, sort: "-createdAt" });
-    if (result.success) {
-      const interviewsData = result.interviews;
-      const completed = interviewsData.filter(
-        (interview) => interview.status === "completed"
-      );
+    try {
+      setLoadingStats(true);
+      
+      // Load interviews and user stats in parallel
+      const [interviewsResult, userStatsResult, interviewStatsResult] = await Promise.all([
+        getAllInterviews({ 
+          limit: interviewsPerPage, 
+          page: currentPage,
+          sort: "-createdAt" 
+        }),
+        userAPI.getStats().catch(() => ({ data: { success: false } })),
+        getInterviewStats().catch(() => ({ success: false }))
+      ]);
 
-      setStats({
-        totalInterviews: interviewsData.length,
-        completedInterviews: completed.length,
-        averageScore:
-          completed.length > 0
+      if (interviewsResult.success) {
+        const interviewsData = interviewsResult.interviews;
+        const pagination = interviewsResult.pagination || {};
+        
+        setTotalInterviews(pagination.total || interviewsData.length);
+        
+        const completed = interviewsData.filter(
+          (interview) => interview.status === "completed"
+        );
+
+        // Calculate weekly progress (interviews this week)
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const weeklyInterviews = interviewsData.filter(
+          interview => new Date(interview.createdAt) >= oneWeekAgo
+        );
+
+        setStats(prev => ({
+          ...prev,
+          totalInterviews: pagination.total || interviewsData.length,
+          completedInterviews: completed.length,
+          averageScore: completed.length > 0
             ? Math.round(
                 completed.reduce(
-                  (sum, interview) => sum + (interview.averageScore || 0),
+                  (sum, interview) => sum + (interview.averageScore || 75),
                   0
                 ) / completed.length
               )
             : 0,
-        recentInterviews: interviewsData.slice(0, 5),
-      });
+          bestScore: completed.length > 0
+            ? Math.max(...completed.map(interview => interview.averageScore || 75))
+            : 0,
+          passRate: completed.length > 0
+            ? Math.round((completed.filter(interview => (interview.averageScore || 75) >= 60).length / completed.length) * 100)
+            : 0,
+          recentInterviews: interviewsData,
+          weeklyProgress: weeklyInterviews.length,
+          currentStreak: calculateStreak(interviewsData),
+        }));
+      }
+
+      if (userStatsResult.data?.success) {
+        setUserStats(userStatsResult.data.data);
+      }
+
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setLoadingStats(false);
     }
+  };
+
+  const calculateStreak = (interviews) => {
+    // Simple streak calculation - consecutive days with interviews
+    const sortedInterviews = interviews
+      .filter(interview => interview.status === 'completed')
+      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
+    
+    if (sortedInterviews.length === 0) return 0;
+    
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    for (const interview of sortedInterviews) {
+      const interviewDate = new Date(interview.completedAt || interview.createdAt);
+      interviewDate.setHours(0, 0, 0, 0);
+      
+      const daysDiff = Math.floor((currentDate - interviewDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === streak) {
+        streak++;
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
   };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      generated: { class: "badge-primary", text: "Generated" },
-      in_progress: { class: "badge-warning", text: "In Progress" },
-      completed: { class: "badge-success", text: "Completed" },
+      generated: { variant: "info", text: "Generated" },
+      in_progress: { variant: "warning", text: "In Progress" },
+      completed: { variant: "success", text: "Completed" },
+      abandoned: { variant: "danger", text: "Abandoned" },
     };
 
-    const config = statusConfig[status] || {
-      class: "badge-primary",
-      text: status,
-    };
-    return <span className={`badge ${config.class}`}>{config.text}</span>;
+    const config = statusConfig[status] || { variant: "secondary", text: status };
+    return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
   const formatDate = (dateString) => {
@@ -69,7 +163,31 @@ const Dashboard = () => {
     });
   };
 
-  if (loading && !interviews.length) {
+  const getScoreColor = (score) => {
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
+    return 'danger';
+  };
+
+  const StatCard = ({ title, value, icon: Icon, color = 'primary', trend, delay = 0 }) => (
+    <Card animate delay={delay} className="text-center">
+      <div className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mx-auto mb-4`}>
+        <Icon className={`w-6 h-6 text-${color}-600`} />
+      </div>
+      <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
+      <div className="text-sm text-gray-600 mb-2">{title}</div>
+      {trend !== undefined && (
+        <div className={`flex items-center justify-center text-xs ${
+          trend >= 0 ? 'text-success-600' : 'text-danger-600'
+        }`}>
+          <TrendingUp className="w-3 h-3 mr-1" />
+          {trend > 0 ? '+' : ''}{trend}% this week
+        </div>
+      )}
+    </Card>
+  );
+
+  if (loadingStats) {
     return (
       <div className="flex items-center justify-center min-h-64">
         <LoadingSpinner size="lg" />
@@ -80,283 +198,271 @@ const Dashboard = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <motion.div 
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user?.name?.split(" ")[0]}!
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.name?.split(" ")[0]}! 👋
           </h1>
-          <p className="mt-2 text-gray-600">
-            Ready to practice your interview skills?
+          <p className="text-lg text-gray-600">
+            Ready to ace your next interview? Let's practice!
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
-          <Link to="/interview/setup" className="btn btn-primary">
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-            New Interview
+        <div className="mt-6 sm:mt-0">
+          <Link to="/interview/setup">
+            <Button variant="primary" size="lg" icon={Plus}>
+              New Interview
+            </Button>
           </Link>
         </div>
-      </div>
-
-      {error && <Alert type="error" message={error} onClose={clearError} />}
+      </motion.div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-primary-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                Total Interviews
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalInterviews}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          title="Total Interviews"
+          value={stats.totalInterviews}
+          icon={BookOpen}
+          color="primary"
+          delay={0}
+        />
+        <StatCard
+          title="Completed"
+          value={stats.completedInterviews}
+          icon={Target}
+          color="success"
+          trend={stats.weeklyProgress}
+          delay={0.1}
+        />
+        <StatCard
+          title="Average Score"
+          value={`${stats.averageScore}%`}
+          icon={Award}
+          color={getScoreColor(stats.averageScore)}
+          delay={0.2}
+        />
+        <StatCard
+          title="Current Streak"
+          value={`${stats.currentStreak} days`}
+          icon={TrendingUp}
+          color="warning"
+          delay={0.3}
+        />
+      </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-success-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-success-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
+      {/* Progress Overview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card animate delay={0.4} className="lg:col-span-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Weekly Progress</h3>
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Interviews This Week
+                </span>
+                <span className="text-sm text-gray-500">
+                  {stats.weeklyProgress} / {stats.monthlyGoal}
+                </span>
               </div>
+              <ProgressBar
+                value={stats.weeklyProgress}
+                max={stats.monthlyGoal}
+                variant="primary"
+                size="lg"
+                animate
+              />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.completedInterviews}
-              </p>
+            
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Pass Rate
+                </span>
+                <span className="text-sm text-gray-500">{stats.passRate}%</span>
+              </div>
+              <ProgressBar
+                value={stats.passRate}
+                variant={getScoreColor(stats.passRate)}
+                size="md"
+                animate
+              />
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-warning-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-warning-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                  />
-                </svg>
-              </div>
+        <Card animate delay={0.5}>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Stats</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Best Score</span>
+              <Badge variant={getScoreColor(stats.bestScore)}>
+                {stats.bestScore}%
+              </Badge>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Average Score</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.averageScore}%
-              </p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Pass Rate</span>
+              <Badge variant={getScoreColor(stats.passRate)}>
+                {stats.passRate}%
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">This Week</span>
+              <Badge variant="info">
+                {stats.weeklyProgress} interviews
+              </Badge>
             </div>
           </div>
-        </div>
+        </Card>
+      </div>
 
-        <div className="card">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-primary-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {stats.totalInterviews - stats.completedInterviews}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Quick Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <Link to="/interview/setup">
+          <Button variant="primary" size="lg" icon={Plus} className="w-full sm:w-auto">
+            Start New Interview
+          </Button>
+        </Link>
+        <Link to="/profile?tab=analytics">
+          <Button variant="outline" size="lg" icon={BarChart3} className="w-full sm:w-auto">
+            View Analytics
+          </Button>
+        </Link>
       </div>
 
       {/* Recent Interviews */}
-      <div className="card">
+      <Card animate delay={0.6}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-gray-900">
             Recent Interviews
           </h2>
-          <Link
-            to="/profile"
-            className="text-sm text-primary-600 hover:text-primary-500 font-medium"
-          >
-            View all
+          <Link to="/profile?tab=history">
+            <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+              View all
+            </Button>
           </Link>
         </div>
 
         {stats.recentInterviews.length === 0 ? (
           <div className="text-center py-12">
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
               No interviews yet
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="text-gray-500 mb-6">
               Get started by creating your first interview.
             </p>
-            <div className="mt-6">
-              <Link to="/interview/setup" className="btn btn-primary">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
+            <Link to="/interview/setup">
+              <Button variant="primary" icon={Plus}>
                 Create Interview
-              </Link>
-            </div>
+              </Button>
+            </Link>
           </div>
         ) : (
-          <div className="overflow-hidden">
+          <>
             <div className="space-y-4">
-              {stats.recentInterviews.map((interview) => (
-                <div
+              {stats.recentInterviews.map((interview, index) => (
+                <motion.div
                   key={interview._id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.6 + (index * 0.1) }}
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {interview.techStack?.join(", ") || "Interview"}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {interview.techStack?.join(", ") || "General Interview"}
                       </h3>
                       {getStatusBadge(interview.status)}
                     </div>
-                    <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
-                      <span>
-                        {interview.hardnessLevel} • {interview.experienceLevel}
-                      </span>
-                      <span>{interview.numberOfQuestions} questions</span>
-                      <span>{formatDate(interview.createdAt)}</span>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center space-x-1">
+                        <Target className="w-3 h-3" />
+                        <span>{interview.hardnessLevel} • {interview.experienceLevel}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{interview.numberOfQuestions} questions</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(interview.createdAt)}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 ml-4">
                     {interview.status === "completed" && (
-                      <Link
-                        to={`/results/${interview._id}`}
-                        className="btn btn-outline btn-sm"
-                      >
-                        View Results
+                      <Link to={`/results/${interview._id}`}>
+                        <Button variant="outline" size="sm">
+                          Results
+                        </Button>
                       </Link>
                     )}
                     {interview.status === "in_progress" && (
-                      <Link
-                        to={`/interview/${interview._id}`}
-                        className="btn btn-primary btn-sm"
-                      >
-                        Continue
+                      <Link to={`/interview/${interview._id}`}>
+                        <Button variant="primary" size="sm">
+                          Continue
+                        </Button>
                       </Link>
                     )}
                     {interview.status === "generated" && (
-                      <Link
-                        to={`/interview/${interview._id}`}
-                        className="btn btn-primary btn-sm"
-                      >
-                        Start
+                      <Link to={`/interview/${interview._id}`}>
+                        <Button variant="primary" size="sm">
+                          Start
+                        </Button>
                       </Link>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </div>
+            
+            {/* Pagination */}
+            {totalInterviews > interviewsPerPage && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                <div className="text-sm text-gray-500">
+                  Showing {((currentPage - 1) * interviewsPerPage) + 1} to {Math.min(currentPage * interviewsPerPage, totalInterviews)} of {totalInterviews} interviews
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-gray-500">
+                    Page {currentPage} of {Math.ceil(totalInterviews / interviewsPerPage)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= Math.ceil(totalInterviews / interviewsPerPage)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
-      </div>
+      </Card>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card">
+        <Card animate delay={0.7} hover>
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-primary-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
+                <Plus className="w-6 h-6 text-primary-600" />
               </div>
             </div>
             <div className="ml-4 flex-1">
@@ -367,44 +473,36 @@ const Dashboard = () => {
                 Create a customized interview session
               </p>
             </div>
-            <Link to="/interview/setup" className="btn btn-primary">
-              Get Started
+            <Link to="/interview/setup">
+              <Button variant="primary">
+                Get Started
+              </Button>
             </Link>
           </div>
-        </div>
+        </Card>
 
-        <div className="card">
+        <Card animate delay={0.8} hover>
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-6 h-6 text-success-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
+                <BarChart3 className="w-6 h-6 text-success-600" />
               </div>
             </div>
             <div className="ml-4 flex-1">
               <h3 className="text-lg font-medium text-gray-900">
-                View Profile
+                View Analytics
               </h3>
               <p className="text-sm text-gray-500">
-                Check your progress and history
+                Check your progress and performance
               </p>
             </div>
-            <Link to="/profile" className="btn btn-outline">
-              View Profile
+            <Link to="/profile">
+              <Button variant="outline">
+                View Profile
+              </Button>
             </Link>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

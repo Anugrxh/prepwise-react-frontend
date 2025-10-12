@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import toast from 'react-hot-toast';
 import { authAPI } from "../services/api.jsx";
 
 const AuthContext = createContext();
@@ -23,9 +24,15 @@ export const AuthProvider = ({ children }) => {
 
       if (token && savedUser) {
         try {
-          setUser(JSON.parse(savedUser));
-          // Verify token is still valid
-          await authAPI.getCurrentUser();
+          // Verify token and get fresh user data
+          const response = await authAPI.getCurrentUser();
+          if (response.data.success) {
+            const freshUserData = response.data.data.user;
+            setUser(freshUserData);
+            localStorage.setItem("user", JSON.stringify(freshUserData));
+          } else {
+            setUser(JSON.parse(savedUser));
+          }
         } catch (error) {
           console.error("Token validation failed:", error);
           localStorage.removeItem("token");
@@ -51,10 +58,12 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
 
+      toast.success(`Welcome back, ${userData.name}!`);
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Login failed";
       setError(errorMessage);
+      toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -73,11 +82,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(newUser));
       setUser(newUser);
 
+      toast.success(`Welcome to PrepWise, ${newUser.name}!`);
       return { success: true };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Registration failed";
       setError(errorMessage);
+      toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -87,6 +98,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authAPI.logout();
+      toast.success("Logged out successfully");
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
+import toast from 'react-hot-toast';
 import { interviewAPI, answerAPI, resultsAPI } from "../services/api.jsx";
 
 const InterviewContext = createContext();
@@ -28,11 +29,13 @@ export const InterviewProvider = ({ children }) => {
       const interview = response.data.data.interview;
 
       setCurrentInterview(interview);
+      toast.success("Interview generated successfully!");
       return { success: true, interview };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Failed to generate interview";
       setError(errorMessage);
+      toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -48,11 +51,13 @@ export const InterviewProvider = ({ children }) => {
       const updatedInterview = response.data.data.interview;
 
       setCurrentInterview(updatedInterview);
+      toast.success("Interview started! Good luck!");
       return { success: true };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Failed to start interview";
       setError(errorMessage);
+      toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -84,6 +89,7 @@ export const InterviewProvider = ({ children }) => {
       const submittedAnswers = response.data.data.answers;
 
       setAnswers(submittedAnswers);
+      toast.success("All answers submitted successfully!");
       return {
         success: true,
         answers: submittedAnswers,
@@ -106,6 +112,7 @@ export const InterviewProvider = ({ children }) => {
       }
 
       setError(errorMessage);
+      toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -144,11 +151,13 @@ export const InterviewProvider = ({ children }) => {
       const result = response.data.data.result;
 
       setResults(result);
+      toast.success("Results generated successfully!");
       return { success: true, result };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Failed to generate results";
       setError(errorMessage);
+      toast.error(errorMessage);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);
@@ -219,6 +228,105 @@ export const InterviewProvider = ({ children }) => {
     setError(null);
   };
 
+  const deleteInterview = async (interviewId) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      await interviewAPI.delete(interviewId);
+      
+      // Remove from local state
+      setInterviews(prev => prev.filter(interview => interview._id !== interviewId));
+      
+      // Clear current interview if it's the one being deleted
+      if (currentInterview && currentInterview._id === interviewId) {
+        setCurrentInterview(null);
+      }
+
+      toast.success("Interview deleted successfully");
+      return { success: true };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete interview";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitSingleAnswer = async (answerData) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const response = await answerAPI.submit(answerData);
+      const answer = response.data.data.answer;
+
+      // Update answers array
+      setAnswers(prev => {
+        const existing = prev.findIndex(a => a.questionNumber === answer.questionNumber);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = answer;
+          return updated;
+        }
+        return [...prev, answer];
+      });
+
+      toast.success("Answer submitted successfully!");
+      return { success: true, answer };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to submit answer";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAnswersByInterview = async (interviewId) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const response = await answerAPI.getByInterview(interviewId);
+      const answersData = response.data.data.answers;
+
+      setAnswers(answersData);
+      return { success: true, answers: answersData };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch answers";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getInterviewStats = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const response = await interviewAPI.getStats();
+      const stats = response.data.data;
+
+      return { success: true, stats };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || "Failed to fetch interview stats";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetInterview = () => {
     setCurrentInterview(null);
     setAnswers([]);
@@ -236,11 +344,15 @@ export const InterviewProvider = ({ children }) => {
     generateInterview,
     startInterview,
     submitAllAnswers,
+    submitSingleAnswer,
     completeInterview,
     generateResults,
     getInterviewById,
     getResultsByInterview,
     getAllInterviews,
+    getAnswersByInterview,
+    getInterviewStats,
+    deleteInterview,
     clearError,
     resetInterview,
   };

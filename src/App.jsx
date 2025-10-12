@@ -9,6 +9,7 @@ import { AuthProvider } from "./contexts/AuthContext.jsx";
 import { InterviewProvider } from "./contexts/InterviewContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Navbar from "./components/Navbar.jsx";
+import Toast from "./components/Toast.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -76,6 +77,7 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
+            <Toast />
           </div>
         </Router>
       </InterviewProvider>

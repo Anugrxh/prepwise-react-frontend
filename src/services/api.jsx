@@ -54,12 +54,14 @@ export const interviewAPI = {
   getById: (id) => api.get(`/interviews/${id}`),
   start: (id) => api.post(`/interviews/${id}/start`),
   complete: (id) => api.post(`/interviews/${id}/complete`),
+  delete: (id) => api.delete(`/interviews/${id}`),
   getStats: () => api.get("/interviews/stats/overview"),
 };
 
 // Answer API
 export const answerAPI = {
   submitAll: (data) => api.post("/answers/submit-all", data),
+  submitBulk: (data) => api.post("/answers/bulk", data),
   submit: (answerData) => api.post("/answers", answerData),
   getByInterview: (interviewId) => api.get(`/answers/interview/${interviewId}`),
   getById: (id) => api.get(`/answers/${id}`),
@@ -81,13 +83,16 @@ export const resultsAPI = {
 export const userAPI = {
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
-  updatePassword: (data) => api.put("/auth/change-password", data),
-  uploadProfileImage: (formData) =>
-    api.post("/users/profile-image", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }),
+  changePassword: (data) => api.put("/auth/change-password", data),
+  updateProfileImage: (data) => {
+    if (data instanceof FormData) {
+      return api.put("/users/profile-image", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    } else {
+      return api.put("/users/profile-image", data);
+    }
+  },
   getStats: () => api.get("/users/stats"),
   getInterviews: (params = {}) => api.get("/users/interviews", { params }),
   getResults: (params = {}) => api.get("/users/results", { params }),

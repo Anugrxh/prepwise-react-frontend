@@ -1,8 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { 
+  Trophy, 
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle,
+  Lightbulb,
+  Plus,
+  ArrowLeft,
+  Award,
+  BarChart3
+} from "lucide-react";
 import { useInterview } from "../contexts/InterviewContext.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
-import Alert from "../components/Alert.jsx";
+import Card from "../components/Card.jsx";
+import Button from "../components/Button.jsx";
+import Badge from "../components/Badge.jsx";
+import ProgressBar from "../components/ProgressBar.jsx";
 
 const Results = () => {
   const { id } = useParams();
@@ -49,15 +68,15 @@ const Results = () => {
   };
 
   const getScoreColor = (score) => {
+    if (score >= 80) return "success";
+    if (score >= 60) return "warning";
+    return "danger";
+  };
+
+  const getScoreTextColor = (score) => {
     if (score >= 80) return "text-success-600";
     if (score >= 60) return "text-warning-600";
     return "text-danger-600";
-  };
-
-  const getScoreBadge = (score) => {
-    if (score >= 80) return "badge-success";
-    if (score >= 60) return "badge-warning";
-    return "badge-danger";
   };
 
   const getGradeColor = (grade) => {
@@ -66,64 +85,73 @@ const Results = () => {
     return "text-danger-600";
   };
 
+  const formatDuration = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
   if (loading || isGeneratingResults) {
     return (
       <div className="flex flex-col items-center justify-center min-h-64">
-        <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-600">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        >
+          <LoadingSpinner size="lg" />
+        </motion.div>
+        <motion.p 
+          className="mt-4 text-gray-600"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
           {isGeneratingResults
             ? "Generating your results..."
             : "Loading results..."}
-        </p>
+        </motion.p>
       </div>
     );
   }
 
   if (!results && !currentInterview) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">Results not found</h2>
-        <p className="mt-2 text-gray-600">
+      <motion.div 
+        className="text-center py-12"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <XCircle className="w-8 h-8 text-gray-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Results not found</h2>
+        <p className="text-gray-600 mb-6">
           The results you're looking for don't exist.
         </p>
-        <button
+        <Button
           onClick={() => navigate("/dashboard")}
-          className="mt-4 btn btn-primary"
+          variant="primary"
+          icon={ArrowLeft}
         >
           Back to Dashboard
-        </button>
-      </div>
+        </Button>
+      </motion.div>
     );
   }
 
   if (!results) {
     return (
       <div className="max-w-2xl mx-auto text-center">
-        <div className="card">
-          {error && (
-            <Alert
-              type="error"
-              message={error}
-              onClose={clearError}
-              className="mb-6"
-            />
-          )}
-
-          <div className="mb-6">
+        <Card animate>
+          <motion.div 
+            className="mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             <div className="w-16 h-16 bg-warning-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-warning-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
+              <AlertTriangle className="w-8 h-8 text-warning-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Results Not Available
@@ -133,98 +161,167 @@ const Results = () => {
               happen if the interview was not completed or there was an error
               generating the results.
             </p>
-          </div>
+          </motion.div>
 
           <div className="flex justify-center space-x-4">
-            <button
+            <Button
               onClick={() => navigate("/dashboard")}
-              className="btn btn-outline"
+              variant="outline"
+              icon={ArrowLeft}
             >
               Back to Dashboard
-            </button>
-            <button onClick={loadResults} className="btn btn-primary">
+            </Button>
+            <Button 
+              onClick={loadResults} 
+              variant="primary"
+            >
               Try Again
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {error && <Alert type="error" message={error} onClose={clearError} />}
-
+    <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Interview Results
+      <motion.div 
+        className="text-center"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          Interview Results 🎉
         </h1>
-        <p className="text-gray-600">
+        <p className="text-lg text-gray-600">
           Here's how you performed in your interview
         </p>
-      </div>
+      </motion.div>
 
       {/* Overall Score */}
-      <div className="card text-center">
-        <div className="mb-4">
-          <div
-            className={`text-6xl font-bold mb-2 ${getScoreColor(
-              results.overallScore
-            )}`}
+      <Card animate className="text-center relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-transparent to-success-50 opacity-50"></div>
+        
+        <div className="relative z-10">
+          <motion.div 
+            className="mb-6"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
           >
-            {results.overallScore}%
-          </div>
-          <div
-            className={`text-2xl font-semibold mb-2 ${getGradeColor(
-              results.grade
-            )}`}
-          >
-            Grade: {results.grade}
-          </div>
-          <span
-            className={`badge ${getScoreBadge(
-              results.overallScore
-            )} text-lg px-4 py-2`}
-          >
-            {results.passed ? "Passed" : "Needs Improvement"}
-          </span>
-        </div>
+            <div className="flex items-center justify-center mb-4">
+              {results.passed ? (
+                <Trophy className="w-16 h-16 text-yellow-500 mr-4" />
+              ) : (
+                <Target className="w-16 h-16 text-gray-400 mr-4" />
+              )}
+              <div
+                className={`text-7xl font-bold ${getScoreTextColor(
+                  results.overallScore
+                )}`}
+              >
+                {results.overallScore}%
+              </div>
+            </div>
+            
+            <div
+              className={`text-3xl font-semibold mb-4 ${getGradeColor(
+                results.grade
+              )}`}
+            >
+              Grade: {results.grade}
+            </div>
+            
+            <Badge 
+              variant={getScoreColor(results.overallScore)} 
+              size="lg"
+              className="text-lg px-6 py-2"
+            >
+              {results.passed ? (
+                <><CheckCircle className="w-5 h-5 mr-2" /> Passed</>
+              ) : (
+                <><XCircle className="w-5 h-5 mr-2" /> Needs Improvement</>
+              )}
+            </Badge>
+          </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-500">Questions Answered</p>
-            <p className="font-semibold">
-              {results.questionsAnswered}/{results.totalQuestions}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500">Completion</p>
-            <p className="font-semibold">{results.completionPercentage}%</p>
-          </div>
-          <div>
-            <p className="text-gray-500">Time Taken</p>
-            <p className="font-semibold">
-              {Math.floor(results.completionTime / 60)}m{" "}
-              {results.completionTime % 60}s
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-500">Status</p>
-            <p className="font-semibold">
-              {results.passed ? "Passed" : "Failed"}
-            </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <motion.div 
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Target className="w-6 h-6 text-primary-600" />
+              </div>
+              <p className="text-sm text-gray-500 mb-1">Questions Answered</p>
+              <p className="text-xl font-bold text-gray-900">
+                {results.questionsAnswered}/{results.totalQuestions}
+              </p>
+            </motion.div>
+            
+            <motion.div 
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <BarChart3 className="w-6 h-6 text-success-600" />
+              </div>
+              <p className="text-sm text-gray-500 mb-1">Completion</p>
+              <p className="text-xl font-bold text-gray-900">{results.completionPercentage}%</p>
+            </motion.div>
+            
+            <motion.div 
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-6 h-6 text-warning-600" />
+              </div>
+              <p className="text-sm text-gray-500 mb-1">Time Taken</p>
+              <p className="text-xl font-bold text-gray-900">
+                {formatDuration(results.completionTime)}
+              </p>
+            </motion.div>
+            
+            <motion.div 
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className={`w-12 h-12 ${results.passed ? 'bg-success-100' : 'bg-danger-100'} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+                {results.passed ? (
+                  <Award className="w-6 h-6 text-success-600" />
+                ) : (
+                  <XCircle className="w-6 h-6 text-danger-600" />
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mb-1">Status</p>
+              <p className={`text-xl font-bold ${results.passed ? 'text-success-600' : 'text-danger-600'}`}>
+                {results.passed ? "Passed" : "Failed"}
+              </p>
+            </motion.div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Category Scores */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">
+      <Card animate delay={0.1}>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+          <BarChart3 className="w-6 h-6 mr-2 text-primary-600" />
           Performance Breakdown
         </h2>
-        <div className="space-y-4">
-          {Object.entries(results.categoryScores).map(([category, score]) => {
+        <div className="space-y-6">
+          {Object.entries(results.categoryScores).map(([category, score], index) => {
             if (score === null) return null;
 
             const categoryNames = {
@@ -235,201 +332,172 @@ const Results = () => {
               facialAnalysis: "Presentation",
             };
 
+            const categoryIcons = {
+              technicalKnowledge: Target,
+              communication: CheckCircle,
+              problemSolving: Lightbulb,
+              confidence: TrendingUp,
+              facialAnalysis: Award,
+            };
+
+            const Icon = categoryIcons[category] || Target;
+
             return (
-              <div key={category}>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    {categoryNames[category] || category}
-                  </span>
-                  <span
-                    className={`text-sm font-semibold ${getScoreColor(score)}`}
-                  >
+              <motion.div 
+                key={category}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + (index * 0.1) }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 bg-${getScoreColor(score)}-100 rounded-lg flex items-center justify-center`}>
+                      <Icon className={`w-4 h-4 text-${getScoreColor(score)}-600`} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">
+                      {categoryNames[category] || category}
+                    </span>
+                  </div>
+                  <Badge variant={getScoreColor(score)}>
                     {score}%
-                  </span>
+                  </Badge>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      score >= 80
-                        ? "bg-success-500"
-                        : score >= 60
-                        ? "bg-warning-500"
-                        : "bg-danger-500"
-                    }`}
-                    style={{ width: `${score}%` }}
-                  ></div>
-                </div>
-              </div>
+                <ProgressBar
+                  value={score}
+                  variant={getScoreColor(score)}
+                  size="lg"
+                  animate
+                />
+              </motion.div>
             );
           })}
         </div>
-      </div>
+      </Card>
 
       {/* Strengths and Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
-        <div className="card">
+        <Card animate delay={0.2}>
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <svg
-              className="w-5 h-5 text-success-500 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <CheckCircle className="w-5 h-5 text-success-500 mr-2" />
             Strengths
           </h3>
           {results.strengths && results.strengths.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {results.strengths.map((strength, index) => (
-                <li key={index} className="flex items-start">
-                  <svg
-                    className="w-4 h-4 text-success-500 mr-2 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  <span className="text-sm text-gray-700">{strength}</span>
-                </li>
+                <motion.li 
+                  key={index} 
+                  className="flex items-start"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + (index * 0.1) }}
+                >
+                  <div className="w-6 h-6 bg-success-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <CheckCircle className="w-3 h-3 text-success-600" />
+                  </div>
+                  <span className="text-sm text-gray-700 leading-relaxed">{strength}</span>
+                </motion.li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 italic">
               No specific strengths identified.
             </p>
           )}
-        </div>
+        </Card>
 
         {/* Weaknesses */}
-        <div className="card">
+        <Card animate delay={0.3}>
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <svg
-              className="w-5 h-5 text-warning-500 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
+            <AlertTriangle className="w-5 h-5 text-warning-500 mr-2" />
             Areas for Improvement
           </h3>
           {results.weaknesses && results.weaknesses.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {results.weaknesses.map((weakness, index) => (
-                <li key={index} className="flex items-start">
-                  <svg
-                    className="w-4 h-4 text-warning-500 mr-2 mt-0.5 flex-shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01"
-                    />
-                  </svg>
-                  <span className="text-sm text-gray-700">{weakness}</span>
-                </li>
+                <motion.li 
+                  key={index} 
+                  className="flex items-start"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + (index * 0.1) }}
+                >
+                  <div className="w-6 h-6 bg-warning-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <AlertTriangle className="w-3 h-3 text-warning-600" />
+                  </div>
+                  <span className="text-sm text-gray-700 leading-relaxed">{weakness}</span>
+                </motion.li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 italic">
               No specific areas for improvement identified.
             </p>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Recommendations */}
       {results.recommendations && results.recommendations.length > 0 && (
-        <div className="card">
+        <Card animate delay={0.4}>
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <svg
-              className="w-5 h-5 text-primary-500 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
+            <Lightbulb className="w-5 h-5 text-primary-500 mr-2" />
             Recommendations
           </h3>
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {results.recommendations.map((recommendation, index) => (
-              <li key={index} className="flex items-start">
-                <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                  <span className="text-xs font-medium text-primary-600">
+              <motion.li 
+                key={index} 
+                className="flex items-start"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + (index * 0.1) }}
+              >
+                <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center mr-4 mt-0.5 flex-shrink-0 shadow-sm">
+                  <span className="text-sm font-bold text-white">
                     {index + 1}
                   </span>
                 </div>
-                <span className="text-sm text-gray-700">{recommendation}</span>
-              </li>
+                <span className="text-sm text-gray-700 leading-relaxed">{recommendation}</span>
+              </motion.li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
 
       {/* Detailed Feedback */}
       {results.detailedFeedback && (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <Card animate delay={0.5}>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <BarChart3 className="w-5 h-5 text-primary-500 mr-2" />
             Detailed Feedback
           </h3>
-          <div className="prose prose-sm max-w-none">
-            <p className="text-gray-700 leading-relaxed">
+          <div className="bg-gray-50 rounded-lg p-6">
+            <p className="text-gray-700 leading-relaxed text-base">
               {results.detailedFeedback}
             </p>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Link to="/interview/setup" className="btn btn-primary">
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          Take Another Interview
+      <motion.div 
+        className="flex flex-col sm:flex-row gap-4 justify-center"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+      >
+        <Link to="/interview/setup">
+          <Button variant="primary" size="lg" icon={Plus}>
+            Take Another Interview
+          </Button>
         </Link>
-        <Link to="/dashboard" className="btn btn-outline">
-          Back to Dashboard
+        <Link to="/dashboard">
+          <Button variant="outline" size="lg" icon={ArrowLeft}>
+            Back to Dashboard
+          </Button>
         </Link>
-      </div>
+      </motion.div>
     </div>
   );
 };
