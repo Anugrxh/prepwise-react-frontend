@@ -361,13 +361,32 @@ export const InterviewProvider = ({ children }) => {
       setLoading(true);
 
       const response = await interviewAPI.getStats();
-      const stats = response.data.data;
+      
+      // Handle different response formats
+      let stats;
+      if (response.data?.success && response.data?.data) {
+        stats = response.data.data;
+      } else if (response.data) {
+        stats = response.data;
+      } else {
+        throw new Error('Invalid response format');
+      }
 
-      return { success: true, stats };
+      // Validate expected structure
+      const validatedStats = {
+        total: stats.total || 0,
+        statusDistribution: stats.statusDistribution || {},
+        hardnessDistribution: stats.hardnessDistribution || {},
+        experienceDistribution: stats.experienceDistribution || {},
+        averageQuestions: stats.averageQuestions || 0,
+      };
+
+      return { success: true, stats: validatedStats };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || "Failed to fetch interview stats";
       setError(errorMessage);
+      console.error('Interview stats error:', error);
       return { success: false, error: errorMessage };
     } finally {
       setLoading(false);

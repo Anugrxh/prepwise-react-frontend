@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, Target, Trash2, Play, Eye, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { interviewAPI, resultsAPI } from '../services/api';
+import { interviewAPI } from '../services/api';
+import { useData } from '../contexts/DataContext.jsx';
+import { useDebouncedCallback } from '../hooks/useDebounce.js';
 import Card from './Card';
 import Button from './Button';
 import Badge from './Badge';
 import LoadingSpinner from './LoadingSpinner';
 
 const InterviewHistory = () => {
+  const { fetchInterviewHistory, invalidateInterviewData } = useData();
   const [interviews, setInterviews] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,13 +20,21 @@ const InterviewHistory = () => {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  useEffect(() => {
-    loadData();
-  }, [filter, sortBy, sortOrder]);
+  // Debounced data loading to prevent rapid API calls on filter changes
+  const debouncedLoadData = useDebouncedCallback(
+    () => loadData(),
+    500, // 500ms debounce for filter changes
+    [filter, sortBy, sortOrder]
+  );
 
-  const loadData = async () => {
+  useEffect(() => {
+    debouncedLoadData();
+  }, [filter, sortBy, sortOrder, debouncedLoadData]);
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('[InterviewHistory] Loading data with filters:', { filter, sortBy, sortOrder });
       
       const params = {
         sort: sortOrder === 'desc' ? `-${sortBy}` : sortBy,
@@ -34,27 +45,28 @@ const InterviewHistory = () => {
         params.status = filter;
       }
 
-      const [interviewsRes, resultsRes] = await Promise.all([
-        interviewAPI.getAll(params),
-        resultsAPI.getAll({ sort: '-createdAt', limit: 50 })
-      ]);
+      const result = await fetchInterviewHistory(params);
 
-      if (interviewsRes.data.success) {
-        setInterviews(interviewsRes.data.data.interviews || []);
+      if (result.interviews?.data?.success) {
+        setInterviews(result.interviews.data.data.interviews || []);
       }
 
-      if (resultsRes.data.success) {
-        setResults(resultsRes.data.data.results || []);
+      if (result.results?.data?.success) {
+        setResults(result.results.data.data.results || []);
+      }
+
+      if (result.errors.interviews || result.errors.results) {
+        toast.error('Failed to load some interview history data');
       }
     } catch (error) {
       toast.error('Failed to load interview history');
-      console.error('Load data error:', error);
+      console.error('[InterviewHistory] Load data error:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchInterviewHistory, filter, sortBy, sortOrder]);
 
-  const handleDeleteInterview = async (interviewId) => {
+  const handleDeleteInterview = useCallback(async (interviewId) => {
     if (!window.confirm('Are you sure you want to delete this interview? This action cannot be undone.')) {
       return;
     }
@@ -62,12 +74,14 @@ const InterviewHistory = () => {
     try {
       await interviewAPI.delete(interviewId);
       setInterviews(prev => prev.filter(interview => interview._id !== interviewId));
+      // Invalidate cache to ensure fresh data on next load
+      invalidateInterviewData();
       toast.success('Interview deleted successfully');
     } catch (error) {
       toast.error('Failed to delete interview');
-      console.error('Delete error:', error);
+      console.error('[InterviewHistory] Delete error:', error);
     }
-  };
+  }, [invalidateInterviewData]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -107,10 +121,13 @@ const InterviewHistory = () => {
     return results.find(result => result.interviewId === interviewId || result.interviewId?._id === interviewId);
   };
 
-  const filteredInterviews = interviews.filter(interview => {
-    if (filter === 'all') return true;
-    return interview.status === filter;
-  });
+  // Memoize filtered interviews to prevent unnecessary re-renders
+  const filteredInterviews = useMemo(() => {
+    return interviews.filter(interview => {
+      if (filter === 'all') return true;
+      return interview.status === filter;
+    });
+  }, [interviews, filter]);
 
   if (loading) {
     return (

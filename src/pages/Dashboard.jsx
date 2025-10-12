@@ -1,168 +1,204 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Plus, 
-  TrendingUp, 
-  Target, 
-  Clock, 
+import {
+  Plus,
+  TrendingUp,
+  Target,
+  Clock,
   Award,
   BookOpen,
   BarChart3,
   Calendar,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { useInterview } from "../contexts/InterviewContext.jsx";
-import { userAPI } from "../services/api.jsx";
+import { useData } from "../contexts/DataContext.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Card from "../components/Card.jsx";
 import Button from "../components/Button.jsx";
 import Badge from "../components/Badge.jsx";
-import ProgressBar from "../components/ProgressBar.jsx";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { interviews, getAllInterviews, getInterviewStats, refreshInterviews, loading } = useInterview();
+  const { fetchDashboardData, invalidateInterviewData } = useData();
+
   const [stats, setStats] = useState({
     totalInterviews: 0,
     completedInterviews: 0,
     averageScore: 0,
     bestScore: 0,
-    passRate: 0,
     recentInterviews: [],
-    weeklyProgress: 0,
-    monthlyGoal: 10,
     currentStreak: 0,
   });
-  const [userStats, setUserStats] = useState(null);
+
   const [loadingStats, setLoadingStats] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [interviewsPerPage] = useState(5);
   const [totalInterviews, setTotalInterviews] = useState(0);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [currentPage]);
-
-  // Refresh data when interviews array changes
-  useEffect(() => {
-    if (interviews.length > 0) {
-      // Only reload if we have interviews and the page is visible
-      if (document.visibilityState === 'visible') {
-        loadDashboardData();
+  const loadDashboardData = useCallback(
+    async (page = 1, forceRefresh = false) => {
+      // Prevent multiple simultaneous loads
+      if (isLoadingData) {
+        console.log("[Dashboard] Already loading, skipping...");
+        return;
       }
-    }
-  }, [interviews.length]);
 
-  // Auto-refresh when page becomes visible
+      try {
+        setIsLoadingData(true);
+        setLoadingStats(true);
+        console.log(
+          `[Dashboard] Loading data for page ${page}, forceRefresh: ${forceRefresh}`
+        );
+
+        const result = await fetchDashboardData({
+          page,
+          limit: interviewsPerPage,
+          forceRefresh,
+        });
+
+        // Process interviews data
+        if (result.interviews?.data?.success) {
+          const interviewsData = result.interviews.data.data.interviews || [];
+          const pagination = result.interviews.data.data.pagination || {};
+
+          setTotalInterviews(pagination.total || interviewsData.length);
+
+          const completed = interviewsData.filter(
+            (interview) => interview.status === "completed"
+          );
+
+          // Get scores from analytics API
+          let avgScore = 0;
+          let bestScore = 0;
+
+          if (result.analytics?.data?.success && result.analytics.data?.data) {
+            const analyticsData = result.analytics.data.data;
+            avgScore = analyticsData.averageScore || 0;
+            bestScore = analyticsData.bestScore || 0;
+            console.log(
+              `[Dashboard] Analytics scores - Avg: ${avgScore}, Best: ${bestScore}`
+            );
+          }
+
+          // Use interview stats if available
+          let statsToUse = {};
+
+          if (
+            result.interviewStats?.data?.success &&
+            result.interviewStats.data?.data
+          ) {
+            const interviewStats = result.interviewStats.data.data;
+
+            statsToUse = {
+              totalInterviews:
+                interviewStats.total ||
+                pagination.total ||
+                interviewsData.length,
+              completedInterviews:
+                interviewStats.statusDistribution?.completed ||
+                completed.length,
+              averageScore: avgScore,
+              bestScore: bestScore,
+              recentInterviews: interviewsData,
+              currentStreak: calculateStreak(interviewsData),
+              statusDistribution: interviewStats.statusDistribution || {},
+              hardnessDistribution: interviewStats.hardnessDistribution || {},
+              experienceDistribution:
+                interviewStats.experienceDistribution || {},
+              averageQuestions: interviewStats.averageQuestions || 0,
+            };
+          } else {
+            // Fallback calculation
+            statsToUse = {
+              totalInterviews: pagination.total || interviewsData.length,
+              completedInterviews: completed.length,
+              averageScore: avgScore,
+              bestScore: bestScore,
+              recentInterviews: interviewsData,
+              currentStreak: calculateStreak(interviewsData),
+            };
+          }
+
+          setStats((prev) => ({ ...prev, ...statsToUse }));
+          console.log("[Dashboard] Data loaded successfully");
+        }
+
+        // Log any errors
+        if (result.errors) {
+          Object.entries(result.errors).forEach(([key, error]) => {
+            if (error) {
+              console.warn(`[Dashboard] ${key} error:`, error);
+            }
+          });
+        }
+      } catch (error) {
+        console.error("[Dashboard] Failed to load data:", error);
+      } finally {
+        setLoadingStats(false);
+        setIsLoadingData(false);
+      }
+    },
+    [fetchDashboardData, interviewsPerPage, isLoadingData]
+  );
+
+  // Load data only when page changes (with simple debouncing)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadDashboardData(currentPage);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [currentPage, loadDashboardData]);
+
+  // Auto-refresh when page becomes visible (but throttled)
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        loadDashboardData();
+      if (document.visibilityState === "visible") {
+        const timeSinceLastRefresh = Date.now() - lastRefresh;
+        // Only refresh if it's been more than 2 minutes since last refresh
+        if (timeSinceLastRefresh > 2 * 60 * 1000) {
+          console.log("[Dashboard] Auto-refreshing due to visibility change");
+          loadDashboardData(currentPage, true);
+          setLastRefresh(Date.now());
+        }
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setLoadingStats(true);
-      
-      // Load interviews and user stats in parallel
-      const [interviewsResult, userStatsResult, interviewStatsResult] = await Promise.all([
-        getAllInterviews({ 
-          limit: interviewsPerPage, 
-          page: currentPage,
-          sort: "-createdAt" 
-        }),
-        userAPI.getStats().catch(() => ({ data: { success: false } })),
-        getInterviewStats().catch(() => ({ success: false }))
-      ]);
-
-      if (interviewsResult.success) {
-        const interviewsData = interviewsResult.interviews || [];
-        const pagination = interviewsResult.pagination || {};
-        
-        setTotalInterviews(pagination.total || interviewsData.length);
-        
-        const completed = interviewsData.filter(
-          (interview) => interview.status === "completed"
-        );
-
-        // Calculate weekly progress (interviews this week)
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        const weeklyInterviews = interviewsData.filter(
-          interview => new Date(interview.createdAt) >= oneWeekAgo
-        );
-
-        // Calculate scores from completed interviews
-        const completedWithScores = completed.filter(interview => 
-          interview.averageScore !== undefined && interview.averageScore !== null
-        );
-
-        const avgScore = completedWithScores.length > 0
-          ? Math.round(
-              completedWithScores.reduce(
-                (sum, interview) => sum + interview.averageScore,
-                0
-              ) / completedWithScores.length
-            )
-          : 0;
-
-        const bestScore = completedWithScores.length > 0
-          ? Math.max(...completedWithScores.map(interview => interview.averageScore))
-          : 0;
-
-        const passRate = completedWithScores.length > 0
-          ? Math.round((completedWithScores.filter(interview => interview.averageScore >= 60).length / completedWithScores.length) * 100)
-          : 0;
-
-        setStats(prev => ({
-          ...prev,
-          totalInterviews: pagination.total || interviewsData.length,
-          completedInterviews: completed.length,
-          averageScore: avgScore,
-          bestScore: bestScore,
-          passRate: passRate,
-          recentInterviews: interviewsData,
-          weeklyProgress: weeklyInterviews.length,
-          currentStreak: calculateStreak(interviewsData),
-        }));
-      }
-
-      if (userStatsResult.data?.success) {
-        setUserStats(userStatsResult.data.data);
-      }
-
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoadingStats(false);
-    }
-  };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [loadDashboardData, currentPage, lastRefresh]);
 
   const calculateStreak = (interviews) => {
     // Simple streak calculation - consecutive days with interviews
     const sortedInterviews = interviews
-      .filter(interview => interview.status === 'completed')
-      .sort((a, b) => new Date(b.completedAt || b.createdAt) - new Date(a.completedAt || a.createdAt));
-    
+      .filter((interview) => interview.status === "completed")
+      .sort(
+        (a, b) =>
+          new Date(b.completedAt || b.createdAt) -
+          new Date(a.completedAt || a.createdAt)
+      );
+
     if (sortedInterviews.length === 0) return 0;
-    
+
     let streak = 0;
     let currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-    
+
     for (const interview of sortedInterviews) {
-      const interviewDate = new Date(interview.completedAt || interview.createdAt);
+      const interviewDate = new Date(
+        interview.completedAt || interview.createdAt
+      );
       interviewDate.setHours(0, 0, 0, 0);
-      
-      const daysDiff = Math.floor((currentDate - interviewDate) / (1000 * 60 * 60 * 24));
-      
+
+      const daysDiff = Math.floor(
+        (currentDate - interviewDate) / (1000 * 60 * 60 * 24)
+      );
+
       if (daysDiff === streak) {
         streak++;
         currentDate.setDate(currentDate.getDate() - 1);
@@ -170,7 +206,7 @@ const Dashboard = () => {
         break;
       }
     }
-    
+
     return streak;
   };
 
@@ -182,7 +218,10 @@ const Dashboard = () => {
       abandoned: { variant: "danger", text: "Abandoned" },
     };
 
-    const config = statusConfig[status] || { variant: "secondary", text: status };
+    const config = statusConfig[status] || {
+      variant: "secondary",
+      text: status,
+    };
     return <Badge variant={config.variant}>{config.text}</Badge>;
   };
 
@@ -197,24 +236,36 @@ const Dashboard = () => {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return 'success';
-    if (score >= 60) return 'warning';
-    return 'danger';
+    if (score >= 80) return "success";
+    if (score >= 60) return "warning";
+    return "danger";
   };
 
-  const StatCard = ({ title, value, icon: Icon, color = 'primary', trend, delay = 0 }) => (
+  const StatCard = ({
+    title,
+    value,
+    icon: Icon,
+    color = "primary",
+    trend,
+    delay = 0,
+  }) => (
     <Card animate delay={delay} className="text-center">
-      <div className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mx-auto mb-4`}>
+      <div
+        className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mx-auto mb-4`}
+      >
         <Icon className={`w-6 h-6 text-${color}-600`} />
       </div>
       <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
       <div className="text-sm text-gray-600 mb-2">{title}</div>
       {trend !== undefined && (
-        <div className={`flex items-center justify-center text-xs ${
-          trend >= 0 ? 'text-success-600' : 'text-danger-600'
-        }`}>
+        <div
+          className={`flex items-center justify-center text-xs ${
+            trend >= 0 ? "text-success-600" : "text-danger-600"
+          }`}
+        >
           <TrendingUp className="w-3 h-3 mr-1" />
-          {trend > 0 ? '+' : ''}{trend}% this week
+          {trend > 0 ? "+" : ""}
+          {trend}% this week
         </div>
       )}
     </Card>
@@ -231,7 +282,7 @@ const Dashboard = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -268,7 +319,6 @@ const Dashboard = () => {
           value={stats.completedInterviews}
           icon={Target}
           color="success"
-          trend={stats.weeklyProgress}
           delay={0.1}
         />
         <StatCard
@@ -279,88 +329,224 @@ const Dashboard = () => {
           delay={0.2}
         />
         <StatCard
-          title="Current Streak"
-          value={`${stats.currentStreak} days`}
-          icon={TrendingUp}
+          title={stats.averageQuestions ? "Avg Questions" : "Current Streak"}
+          value={
+            stats.averageQuestions
+              ? `${stats.averageQuestions} questions`
+              : `${stats.currentStreak} days`
+          }
+          icon={stats.averageQuestions ? Clock : TrendingUp}
           color="warning"
           delay={0.3}
         />
       </div>
 
-      {/* Progress Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card animate delay={0.4} className="lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Weekly Progress</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Interviews This Week
-                </span>
-                <span className="text-sm text-gray-500">
-                  {stats.weeklyProgress} / {stats.monthlyGoal}
-                </span>
-              </div>
-              <ProgressBar
-                value={stats.weeklyProgress}
-                max={stats.monthlyGoal}
-                variant="primary"
-                size="lg"
-                animate
-              />
-            </div>
-            
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Pass Rate
-                </span>
-                <span className="text-sm text-gray-500">{stats.passRate}%</span>
-              </div>
-              <ProgressBar
-                value={stats.passRate}
-                variant={getScoreColor(stats.passRate)}
-                size="md"
-                animate
-              />
-            </div>
-          </div>
-        </Card>
+      {/* Interview Overview Stats */}
+      {!loadingStats &&
+        (stats.statusDistribution ||
+          stats.hardnessDistribution ||
+          stats.experienceDistribution) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Status Distribution */}
+            {stats.statusDistribution &&
+              Object.keys(stats.statusDistribution).length > 0 && (
+                <Card animate delay={0.35}>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Interview Status
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(stats.statusDistribution).map(
+                      ([status, count]) => {
+                        const total = Object.values(
+                          stats.statusDistribution
+                        ).reduce((sum, c) => sum + c, 0);
+                        const percentage =
+                          total > 0 ? (count / total) * 100 : 0;
+                        const statusConfig = {
+                          generated: { color: "info", label: "Generated" },
+                          inProgress: {
+                            color: "warning",
+                            label: "In Progress",
+                          },
+                          completed: { color: "success", label: "Completed" },
+                          abandoned: { color: "danger", label: "Abandoned" },
+                        };
+                        const config = statusConfig[status] || {
+                          color: "secondary",
+                          label: status,
+                        };
 
-        <Card animate delay={0.5}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Quick Stats</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Best Score</span>
-              <Badge variant={getScoreColor(stats.bestScore)}>
-                {stats.bestScore}%
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Pass Rate</span>
-              <Badge variant={getScoreColor(stats.passRate)}>
-                {stats.passRate}%
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">This Week</span>
-              <Badge variant="info">
-                {stats.weeklyProgress} interviews
-              </Badge>
-            </div>
+                        return (
+                          <div
+                            key={status}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={config.color} size="sm">
+                                {config.label}
+                              </Badge>
+                              <span className="text-sm text-gray-600">
+                                {count}
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full bg-${config.color}-500`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-500 w-8">
+                                {Math.round(percentage)}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </Card>
+              )}
+
+            {/* Difficulty Distribution */}
+            {stats.hardnessDistribution &&
+              Object.keys(stats.hardnessDistribution).length > 0 && (
+                <Card animate delay={0.4}>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Difficulty Levels
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(stats.hardnessDistribution).map(
+                      ([level, count]) => {
+                        const total = Object.values(
+                          stats.hardnessDistribution
+                        ).reduce((sum, c) => sum + c, 0);
+                        const percentage =
+                          total > 0 ? (count / total) * 100 : 0;
+                        const levelConfig = {
+                          Easy: { color: "success", icon: "🟢" },
+                          Medium: { color: "warning", icon: "🟡" },
+                          Hard: { color: "danger", icon: "🔴" },
+                        };
+                        const config = levelConfig[level] || {
+                          color: "secondary",
+                          icon: "⚪",
+                        };
+
+                        return (
+                          <div
+                            key={level}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm">{config.icon}</span>
+                              <span className="text-sm font-medium text-gray-700">
+                                {level}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                ({count})
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full bg-${config.color}-500`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-500 w-8">
+                                {Math.round(percentage)}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </Card>
+              )}
+
+            {/* Experience Distribution */}
+            {stats.experienceDistribution &&
+              Object.keys(stats.experienceDistribution).length > 0 && (
+                <Card animate delay={0.45}>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Experience Levels
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(stats.experienceDistribution).map(
+                      ([level, count]) => {
+                        const total = Object.values(
+                          stats.experienceDistribution
+                        ).reduce((sum, c) => sum + c, 0);
+                        const percentage =
+                          total > 0 ? (count / total) * 100 : 0;
+                        const levelConfig = {
+                          Fresher: { color: "info", icon: "🌱" },
+                          Junior: { color: "success", icon: "🌿" },
+                          Mid: { color: "warning", icon: "🌳" },
+                          Senior: { color: "primary", icon: "🏆" },
+                          Lead: { color: "danger", icon: "👑" },
+                        };
+                        const config = levelConfig[level] || {
+                          color: "secondary",
+                          icon: "👤",
+                        };
+
+                        return (
+                          <div
+                            key={level}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm">{config.icon}</span>
+                              <span className="text-sm font-medium text-gray-700">
+                                {level}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                ({count})
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-16 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full bg-${config.color}-500`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-xs text-gray-500 w-8">
+                                {Math.round(percentage)}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                </Card>
+              )}
           </div>
-        </Card>
-      </div>
+        )}
 
       {/* Quick Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Link to="/interview/setup">
-          <Button variant="primary" size="lg" icon={Plus} className="w-full sm:w-auto">
+          <Button
+            variant="primary"
+            size="lg"
+            icon={Plus}
+            className="w-full sm:w-auto"
+          >
             Start New Interview
           </Button>
         </Link>
         <Link to="/profile?tab=analytics">
-          <Button variant="outline" size="lg" icon={BarChart3} className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="lg"
+            icon={BarChart3}
+            className="w-full sm:w-auto"
+          >
             View Analytics
           </Button>
         </Link>
@@ -373,22 +559,42 @@ const Dashboard = () => {
             Recent Interviews
           </h2>
           <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={loadDashboardData}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                console.log("[Dashboard] Manual refresh triggered");
+                invalidateInterviewData();
+                loadDashboardData(currentPage, true);
+                setLastRefresh(Date.now());
+              }}
               disabled={loadingStats}
             >
               {loadingStats ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
               )}
             </Button>
             <Link to="/profile?tab=history">
-              <Button variant="ghost" size="sm" icon={ArrowRight} iconPosition="right">
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={ArrowRight}
+                iconPosition="right"
+              >
                 View all
               </Button>
             </Link>
@@ -421,7 +627,7 @@ const Dashboard = () => {
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.6 + (index * 0.1) }}
+                  transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-2">
@@ -429,22 +635,28 @@ const Dashboard = () => {
                         {interview.techStack?.join(", ") || "General Interview"}
                       </h3>
                       {getStatusBadge(interview.status)}
-                      {interview.status === "completed" && interview.averageScore && (
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          interview.averageScore >= 80 
-                            ? 'bg-success-100 text-success-800' 
-                            : interview.averageScore >= 60 
-                            ? 'bg-warning-100 text-warning-800' 
-                            : 'bg-danger-100 text-danger-800'
-                        }`}>
-                          {interview.averageScore}%
-                        </span>
-                      )}
+                      {interview.status === "completed" &&
+                        interview.averageScore && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              interview.averageScore >= 80
+                                ? "bg-success-100 text-success-800"
+                                : interview.averageScore >= 60
+                                ? "bg-warning-100 text-warning-800"
+                                : "bg-danger-100 text-danger-800"
+                            }`}
+                          >
+                            {interview.averageScore}%
+                          </span>
+                        )}
                     </div>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <div className="flex items-center space-x-1">
                         <Target className="w-3 h-3" />
-                        <span>{interview.hardnessLevel} • {interview.experienceLevel}</span>
+                        <span>
+                          {interview.hardnessLevel} •{" "}
+                          {interview.experienceLevel}
+                        </span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Calendar className="w-3 h-3" />
@@ -454,12 +666,15 @@ const Dashboard = () => {
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(interview.createdAt)}</span>
                       </div>
-                      {interview.status === "completed" && interview.completedAt && (
-                        <div className="flex items-center space-x-1">
-                          <Award className="w-3 h-3" />
-                          <span>Completed {formatDate(interview.completedAt)}</span>
-                        </div>
-                      )}
+                      {interview.status === "completed" &&
+                        interview.completedAt && (
+                          <div className="flex items-center space-x-1">
+                            <Award className="w-3 h-3" />
+                            <span>
+                              Completed {formatDate(interview.completedAt)}
+                            </span>
+                          </div>
+                        )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2 ml-4">
@@ -488,30 +703,38 @@ const Dashboard = () => {
                 </motion.div>
               ))}
             </div>
-            
+
             {/* Pagination */}
             {totalInterviews > interviewsPerPage && (
               <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
                 <div className="text-sm text-gray-500">
-                  Showing {((currentPage - 1) * interviewsPerPage) + 1} to {Math.min(currentPage * interviewsPerPage, totalInterviews)} of {totalInterviews} interviews
+                  Showing {(currentPage - 1) * interviewsPerPage + 1} to{" "}
+                  {Math.min(currentPage * interviewsPerPage, totalInterviews)}{" "}
+                  of {totalInterviews} interviews
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
                     disabled={currentPage === 1}
                   >
                     Previous
                   </Button>
                   <span className="text-sm text-gray-500">
-                    Page {currentPage} of {Math.ceil(totalInterviews / interviewsPerPage)}
+                    Page {currentPage} of{" "}
+                    {Math.ceil(totalInterviews / interviewsPerPage)}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    disabled={currentPage >= Math.ceil(totalInterviews / interviewsPerPage)}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    disabled={
+                      currentPage >=
+                      Math.ceil(totalInterviews / interviewsPerPage)
+                    }
                   >
                     Next
                   </Button>
@@ -540,9 +763,7 @@ const Dashboard = () => {
               </p>
             </div>
             <Link to="/interview/setup">
-              <Button variant="primary">
-                Get Started
-              </Button>
+              <Button variant="primary">Get Started</Button>
             </Link>
           </div>
         </Card>
@@ -563,9 +784,7 @@ const Dashboard = () => {
               </p>
             </div>
             <Link to="/profile">
-              <Button variant="outline">
-                View Profile
-              </Button>
+              <Button variant="outline">View Profile</Button>
             </Link>
           </div>
         </Card>

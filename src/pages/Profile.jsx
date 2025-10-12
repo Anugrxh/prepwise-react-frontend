@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Camera, User, History, BarChart3, Settings, Upload } from "lucide-react";
 import toast from 'react-hot-toast';
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { userAPI, interviewAPI, resultsAPI } from "../services/api.jsx";
+import { useData } from "../contexts/DataContext.jsx";
+import { userAPI } from "../services/api.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Card from "../components/Card.jsx";
 import Button from "../components/Button.jsx";
@@ -56,6 +57,9 @@ const Profile = () => {
     }
   }, [searchParams]);
 
+  const { fetchProfileAnalytics, fetchInterviewHistory } = useData();
+
+  // Only load data when tab becomes active (not on every tab change)
   useEffect(() => {
     if (activeTab === "history") {
       loadInterviewHistory();
@@ -69,162 +73,128 @@ const Profile = () => {
     setSearchParams({ tab: tabId });
   };
 
-  const loadInterviewHistory = async () => {
+  const loadInterviewHistory = useCallback(async () => {
     try {
       setLoading(true);
-      const [interviewsResponse, resultsResponse] = await Promise.all([
-        userAPI.getInterviews({ limit: 20, sort: "-createdAt" }),
-        userAPI.getResults({ limit: 20, sort: "-createdAt" }),
-      ]);
+      console.log('[Profile] Loading interview history...');
+      
+      const result = await fetchInterviewHistory({ limit: 20, sort: '-createdAt' });
 
-      if (interviewsResponse.data.success) {
-        setInterviews(interviewsResponse.data.data.interviews || []);
+      if (result.interviews?.data?.success) {
+        setInterviews(result.interviews.data.data.interviews || []);
       }
 
-      if (resultsResponse.data.success) {
-        setResults(resultsResponse.data.data.results || []);
+      if (result.results?.data?.success) {
+        setResults(result.results.data.data.results || []);
+      }
+
+      if (result.errors.interviews || result.errors.results) {
+        setError("Failed to load some interview history data");
       }
     } catch (error) {
       setError("Failed to load interview history");
+      console.error('[Profile] Interview history error:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchInterviewHistory]);
 
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       setLoading(true);
-      const [statsResponse, analyticsResponse, interviewsResponse] =
-        await Promise.all([
-          userAPI.getStats(),
-          resultsAPI.getAnalytics(),
-          userAPI.getInterviews({ limit: 50 }),
-        ]);
+      console.log('[Profile] Loading analytics...');
+      
+      const result = await fetchProfileAnalytics();
 
       let analyticsData = {
         totalInterviews: 0,
         completedInterviews: 0,
         averageScore: 0,
         bestScore: 0,
-        totalTimeSpent: 0,
-        recentActivity: [],
+        improvementTrend: 0,
+        passRate: 0,
+        categoryTrends: {},
+        gradeDistribution: {},
         performanceData: [],
-        categoryBreakdown: {},
+        insights: {},
       };
 
-      if (statsResponse.data.success) {
-        const userStats = statsResponse.data.data;
-        analyticsData = { ...analyticsData, ...userStats };
-      }
-
-      if (interviewsResponse.data.success) {
-        const allInterviews = interviewsResponse.data.data.interviews || [];
-        const completed = allInterviews.filter(
-          (interview) => interview.status === "completed"
-        );
-
-        // Calculate performance over time
-        const performanceData = completed.map((interview, index) => ({
-          interview: index + 1,
-          score: interview.averageScore || Math.floor(Math.random() * 40) + 60, // Mock data if not available
-          date: new Date(interview.createdAt).toLocaleDateString(),
-        }));
-
-        // Calculate category breakdown with proper structure for AnalyticsDashboard
-        const categoryTrends = {
-          "Technical Knowledge": {
-            average: Math.floor(Math.random() * 30) + 70,
-            best: Math.floor(Math.random() * 20) + 80,
-            latest: Math.floor(Math.random() * 30) + 70,
-            trend: Math.floor(Math.random() * 20) - 10
-          },
-          "Communication": {
-            average: Math.floor(Math.random() * 30) + 70,
-            best: Math.floor(Math.random() * 20) + 80,
-            latest: Math.floor(Math.random() * 30) + 70,
-            trend: Math.floor(Math.random() * 20) - 10
-          },
-          "Problem Solving": {
-            average: Math.floor(Math.random() * 30) + 70,
-            best: Math.floor(Math.random() * 20) + 80,
-            latest: Math.floor(Math.random() * 30) + 70,
-            trend: Math.floor(Math.random() * 20) - 10
-          },
-          "Confidence": {
-            average: Math.floor(Math.random() * 30) + 70,
-            best: Math.floor(Math.random() * 20) + 80,
-            latest: Math.floor(Math.random() * 30) + 70,
-            trend: Math.floor(Math.random() * 20) - 10
-          }
-        };
-
-        // Generate grade distribution
-        const gradeDistribution = {
-          "A+": Math.floor(Math.random() * 3) + 1,
-          "A": Math.floor(Math.random() * 4) + 2,
-          "B+": Math.floor(Math.random() * 5) + 3,
-          "B": Math.floor(Math.random() * 4) + 2,
-          "C+": Math.floor(Math.random() * 3) + 1,
-          "C": Math.floor(Math.random() * 2) + 1
-        };
-
-        // Recent activity
-        const recentActivity = allInterviews.slice(0, 5).map((interview) => ({
-          id: interview._id,
-          type:
-            interview.status === "completed"
-              ? "Completed Interview"
-              : "Started Interview",
-          techStack: interview.techStack?.join(", ") || "General",
-          date: new Date(interview.createdAt).toLocaleDateString(),
-          score:
-            interview.status === "completed"
-              ? interview.averageScore || Math.floor(Math.random() * 40) + 60
-              : null,
-        }));
-
+      // Use real analytics data from API
+      if (result.analytics?.data?.success && result.analytics.data?.data) {
+        const apiData = result.analytics.data.data;
+        console.log('[Profile] Analytics API data:', apiData);
+        
         analyticsData = {
-          ...analyticsData,
-          totalInterviews: allInterviews.length,
-          completedInterviews: completed.length,
-          averageScore:
-            completed.length > 0
-              ? Math.round(
-                  completed.reduce(
-                    (sum, interview) => sum + (interview.averageScore || 75),
-                    0
-                  ) / completed.length
-                )
-              : 0,
-          bestScore:
-            completed.length > 0
-              ? Math.max(
-                  ...completed.map((interview) => interview.averageScore || 75)
-                )
-              : 0,
-          improvementTrend: Math.floor(Math.random() * 20) - 5, // Mock improvement trend
-          passRate: completed.length > 0 
-            ? Math.round((completed.filter(interview => (interview.averageScore || 75) >= 60).length / completed.length) * 100)
-            : 0,
-          performanceData,
-          categoryTrends,
-          gradeDistribution,
-          recentActivity,
-          insights: {
-            mostImprovedCategory: "Technical Knowledge",
-            strongestCategory: "Problem Solving", 
-            needsImprovement: ["Communication", "Confidence"]
-          }
+          totalInterviews: apiData.totalInterviews || 0,
+          completedInterviews: apiData.totalInterviews || 0,
+          averageScore: apiData.averageScore || 0,
+          bestScore: apiData.bestScore || 0,
+          improvementTrend: apiData.improvementTrend || 0,
+          passRate: apiData.passRate || 0,
+          categoryTrends: apiData.categoryTrends || {},
+          gradeDistribution: apiData.gradeDistribution || {},
+          insights: apiData.insights || {},
+          performanceData: (apiData.recentResults || []).map((result, index) => ({
+            interview: index + 1,
+            score: result.overallScore || 0,
+            date: new Date(result.createdAt).toLocaleDateString(),
+          })),
         };
+      } else {
+        console.log('[Profile] Using fallback analytics calculation');
+        
+        // Fallback: calculate from interviews if analytics API is not available
+        if (result.interviews?.data?.success) {
+          const allInterviews = result.interviews.data.data.interviews || [];
+          const completed = allInterviews.filter(
+            (interview) => interview.status === "completed"
+          );
+
+          const completedWithScores = completed.filter(interview => 
+            interview.averageScore !== undefined && interview.averageScore !== null
+          );
+
+          if (completedWithScores.length > 0) {
+            const avgScore = Math.round(
+              completedWithScores.reduce(
+                (sum, interview) => sum + interview.averageScore,
+                0
+              ) / completedWithScores.length
+            );
+
+            const bestScore = Math.max(
+              ...completedWithScores.map((interview) => interview.averageScore)
+            );
+
+            const passRate = Math.round(
+              (completedWithScores.filter(interview => interview.averageScore >= 60).length / completedWithScores.length) * 100
+            );
+
+            analyticsData = {
+              ...analyticsData,
+              totalInterviews: allInterviews.length,
+              completedInterviews: completed.length,
+              averageScore: avgScore,
+              bestScore: bestScore,
+              passRate: passRate,
+              performanceData: completedWithScores.map((interview, index) => ({
+                interview: index + 1,
+                score: interview.averageScore,
+                date: new Date(interview.createdAt).toLocaleDateString(),
+              })),
+            };
+          }
+        }
       }
 
       setStats(analyticsData);
     } catch (error) {
+      console.error('[Profile] Failed to load analytics:', error);
       setError("Failed to load analytics");
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchProfileAnalytics]);
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -458,14 +428,14 @@ const Profile = () => {
                     </span>
                   </div>
                 )}
-                {/* <motion.button
+                <motion.button
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 bg-primary-600 text-white rounded-full p-2 hover:bg-primary-700 transition-colors shadow-lg"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <Camera className="w-4 h-4" />
-                </motion.button> */}
+                </motion.button>
               </div>
 
               <div>
@@ -473,7 +443,7 @@ const Profile = () => {
                   {user?.name}
                 </h3>
                 <p className="text-gray-500">{user?.email}</p>
-                {/* <Button
+                <Button
                   variant="outline"
                   size="sm"
                   icon={Upload}
@@ -481,7 +451,7 @@ const Profile = () => {
                   className="mt-3"
                 >
                   Change Picture
-                </Button> */}
+                </Button>
               </div>
             </div>
 

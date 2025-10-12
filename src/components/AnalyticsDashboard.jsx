@@ -86,32 +86,41 @@ const AnalyticsDashboard = ({ analytics }) => {
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Category Performance</h3>
           {Object.keys(categoryTrends).length > 0 ? (
             <div className="space-y-4">
-              {Object.entries(categoryTrends).map(([category, data], index) => (
-                <div key={category}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">{category}</span>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={getScoreColor(data.average)} size="sm">
-                        {data.average}%
-                      </Badge>
-                      {data.trend !== undefined && (
-                        <div className={`flex items-center text-xs ${
-                          data.trend >= 0 ? 'text-success-600' : 'text-danger-600'
-                        }`}>
-                          {data.trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          <span className="ml-1">{Math.abs(data.trend)}%</span>
-                        </div>
-                      )}
+              {Object.entries(categoryTrends).map(([category, data], index) => {
+                // Handle both API format and fallback format
+                const categoryData = typeof data === 'object' && data !== null ? data : { average: data || 0 };
+                const average = categoryData.average || 0;
+                const trend = categoryData.trend;
+                
+                return (
+                  <div key={category}>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        {category.charAt(0).toUpperCase() + category.slice(1).replace(/([A-Z])/g, ' $1')}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant={getScoreColor(average)} size="sm">
+                          {average}%
+                        </Badge>
+                        {trend !== undefined && (
+                          <div className={`flex items-center text-xs ${
+                            trend >= 0 ? 'text-success-600' : 'text-danger-600'
+                          }`}>
+                            {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                            <span className="ml-1">{Math.abs(trend)}%</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    <ProgressBar
+                      value={average}
+                      variant={getScoreColor(average)}
+                      size="md"
+                      animate
+                    />
                   </div>
-                  <ProgressBar
-                    value={data.average}
-                    variant={getScoreColor(data.average)}
-                    size="md"
-                    animate
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -127,35 +136,47 @@ const AnalyticsDashboard = ({ analytics }) => {
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Grade Distribution</h3>
           {Object.keys(gradeDistribution).length > 0 ? (
             <div className="space-y-3">
-              {Object.entries(gradeDistribution).map(([grade, count]) => {
-                const total = Object.values(gradeDistribution).reduce((sum, c) => sum + c, 0);
-                const percentage = total > 0 ? (count / total) * 100 : 0;
-                
-                return (
-                  <div key={grade} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Badge variant={getScoreColor(grade === 'A' ? 90 : grade === 'B' ? 75 : 60)}>
-                        {grade}
-                      </Badge>
-                      <span className="text-sm text-gray-600">{count} interviews</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-2">
-                        <motion.div
-                          className={`h-2 rounded-full ${
-                            grade.startsWith('A') ? 'bg-success-500' :
-                            grade.startsWith('B') ? 'bg-warning-500' : 'bg-danger-500'
-                          }`}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 1, delay: 0.5 }}
-                        />
+              {Object.entries(gradeDistribution)
+                .sort(([a], [b]) => {
+                  // Sort grades in logical order
+                  const gradeOrder = { 'A+': 0, 'A': 1, 'B+': 2, 'B': 3, 'C+': 4, 'C': 5, 'D': 6, 'F': 7 };
+                  return (gradeOrder[a] || 99) - (gradeOrder[b] || 99);
+                })
+                .map(([grade, count]) => {
+                  const total = Object.values(gradeDistribution).reduce((sum, c) => sum + c, 0);
+                  const percentage = total > 0 ? (count / total) * 100 : 0;
+                  
+                  // Determine grade score for color coding
+                  const gradeScore = grade.startsWith('A') ? 90 : 
+                                   grade.startsWith('B') ? 75 : 
+                                   grade.startsWith('C') ? 60 : 40;
+                  
+                  return (
+                    <div key={grade} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant={getScoreColor(gradeScore)}>
+                          {grade}
+                        </Badge>
+                        <span className="text-sm text-gray-600">{count} interview{count !== 1 ? 's' : ''}</span>
                       </div>
-                      <span className="text-xs text-gray-500 w-8">{Math.round(percentage)}%</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <motion.div
+                            className={`h-2 rounded-full ${
+                              grade.startsWith('A') ? 'bg-success-500' :
+                              grade.startsWith('B') ? 'bg-warning-500' : 
+                              grade.startsWith('C') ? 'bg-orange-500' : 'bg-danger-500'
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 1, delay: 0.5 }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500 w-8">{Math.round(percentage)}%</span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           ) : (
             <div className="text-center py-8">
