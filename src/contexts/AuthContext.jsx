@@ -58,6 +58,19 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
 
+      // Fetch fresh user data to ensure we have the complete profile including image
+      try {
+        const freshUserResponse = await authAPI.getCurrentUser();
+        if (freshUserResponse.data.success) {
+          const freshUserData = freshUserResponse.data.data.user;
+          setUser(freshUserData);
+          localStorage.setItem("user", JSON.stringify(freshUserData));
+        }
+      } catch (fetchError) {
+        console.warn("Failed to fetch fresh user data after login:", fetchError);
+        // Continue with the login data we already have
+      }
+
       toast.success(`Welcome back, ${userData.name}!`);
       return { success: true };
     } catch (error) {
@@ -81,6 +94,19 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(newUser));
       setUser(newUser);
+
+      // Fetch fresh user data to ensure we have the complete profile including image
+      try {
+        const freshUserResponse = await authAPI.getCurrentUser();
+        if (freshUserResponse.data.success) {
+          const freshUserData = freshUserResponse.data.data.user;
+          setUser(freshUserData);
+          localStorage.setItem("user", JSON.stringify(freshUserData));
+        }
+      } catch (fetchError) {
+        console.warn("Failed to fetch fresh user data after registration:", fetchError);
+        // Continue with the registration data we already have
+      }
 
       toast.success(`Welcome to PrepWise, ${newUser.name}!`);
       return { success: true };
