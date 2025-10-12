@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useInterview } from "../contexts/InterviewContext.jsx";
+import { useData } from "../contexts/DataContext.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Alert from "../components/Alert.jsx";
 import WebcamCapture from "../components/WebcamCapture.jsx";
@@ -8,6 +9,7 @@ import WebcamCapture from "../components/WebcamCapture.jsx";
 const Interview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { invalidateInterviewData, invalidateAnalyticsData } = useData();
   const {
     currentInterview,
     getInterviewById,
@@ -200,6 +202,10 @@ const Interview = () => {
       if (result.success) {
         // Complete the interview
         await completeInterview(currentInterview._id);
+
+        // Invalidate cache to ensure fresh data is loaded
+        invalidateInterviewData();
+        invalidateAnalyticsData();
 
         // Navigate to results page
         navigate(`/results/${currentInterview._id}`);

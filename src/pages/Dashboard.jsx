@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useData } from "../contexts/DataContext.jsx";
+import { useAuthCache } from "../hooks/useAuthCache.js";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Card from "../components/Card.jsx";
 import Button from "../components/Button.jsx";
@@ -22,6 +23,7 @@ import Badge from "../components/Badge.jsx";
 const Dashboard = () => {
   const { user } = useAuth();
   const { fetchDashboardData, invalidateInterviewData } = useData();
+  useAuthCache(); // Clear cache on user changes
 
   const [stats, setStats] = useState({
     totalInterviews: 0,

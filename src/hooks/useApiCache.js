@@ -43,6 +43,21 @@ class ApiCache {
     this.cache.clear();
     console.log('[API Cache] Cleared all cache');
   }
+
+  clearUserCache(userId) {
+    if (!userId) {
+      this.clear();
+      return;
+    }
+    
+    const keys = Array.from(this.cache.keys());
+    keys.forEach(key => {
+      if (key.includes(`user-${userId}`) || !key.includes('user-')) {
+        this.cache.delete(key);
+        console.log(`[API Cache] Cleared user cache: ${key}`);
+      }
+    });
+  }
 }
 
 const apiCache = new ApiCache();

@@ -5,6 +5,7 @@ import { Camera, User, History, BarChart3, Settings, Upload } from "lucide-react
 import toast from 'react-hot-toast';
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useData } from "../contexts/DataContext.jsx";
+import { useAuthCache } from "../hooks/useAuthCache.js";
 import { userAPI } from "../services/api.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Card from "../components/Card.jsx";
@@ -15,6 +16,7 @@ import AnalyticsDashboard from "../components/AnalyticsDashboard.jsx";
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  useAuthCache(); // Clear cache on user changes
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -57,7 +59,7 @@ const Profile = () => {
     }
   }, [searchParams]);
 
-  const { fetchProfileAnalytics, fetchInterviewHistory } = useData();
+  const { fetchProfileAnalytics, fetchInterviewHistory, invalidateAllData } = useData();
 
   // Only load data when tab becomes active (not on every tab change)
   useEffect(() => {
@@ -210,6 +212,8 @@ const Profile = () => {
 
       if (response.data.success) {
         updateUser(response.data.data.user);
+        // Invalidate cache to ensure fresh data is loaded
+        invalidateAllData();
         toast.success("Profile updated successfully");
         setSuccess("Profile updated successfully");
       }
@@ -300,6 +304,8 @@ const Profile = () => {
 
       if (response.data.success) {
         updateUser(response.data.data.user);
+        // Invalidate cache to ensure fresh data is loaded
+        invalidateAllData();
         toast.success("Profile image updated successfully");
         setSuccess("Profile image updated successfully");
       }

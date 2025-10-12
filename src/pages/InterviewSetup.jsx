@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInterview } from "../contexts/InterviewContext.jsx";
+import { useData } from "../contexts/DataContext.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Alert from "../components/Alert.jsx";
 
@@ -15,6 +16,7 @@ const InterviewSetup = () => {
   const [validationErrors, setValidationErrors] = useState({});
 
   const { generateInterview, loading, error, clearError } = useInterview();
+  const { invalidateInterviewData } = useData();
   const navigate = useNavigate();
 
   const techStackOptions = [
@@ -116,6 +118,8 @@ const InterviewSetup = () => {
 
     const result = await generateInterview(formData);
     if (result.success) {
+      // Invalidate cache to ensure fresh data is loaded
+      invalidateInterviewData();
       navigate(`/interview/${result.interview._id}`);
     }
   };

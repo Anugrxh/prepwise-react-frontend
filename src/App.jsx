@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Toast from "./components/Toast.jsx";
 import ApiDebugPanel from "./components/ApiDebugPanel.jsx";
+import CacheManager from "./components/CacheManager.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -82,6 +83,7 @@ function App() {
             </main>
             <Toast />
             <ApiDebugPanel />
+            <CacheManager />
           </div>
         </Router>
         </DataProvider>

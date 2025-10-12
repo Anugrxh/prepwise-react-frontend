@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useApiCache } from '../hooks/useApiCache.js';
+import { useAuth } from './AuthContext.jsx';
 import { userAPI, resultsAPI, interviewAPI } from '../services/api.jsx';
 
 const DataContext = createContext();
@@ -14,7 +15,13 @@ export const useData = () => {
 
 export const DataProvider = ({ children }) => {
   const { fetchWithCache, invalidateCache, clearCache, getApiStats } = useApiCache();
+  const { user } = useAuth();
   const [globalLoading, setGlobalLoading] = useState(false);
+
+  // Helper to create user-specific cache keys
+  const getUserCacheKey = useCallback((baseKey) => {
+    return user?.id ? `user-${user.id}-${baseKey}` : baseKey;
+  }, [user?.id]);
 
   // Centralized data fetching functions
   const fetchDashboardData = useCallback(async (options = {}) => {
@@ -27,17 +34,17 @@ export const DataProvider = ({ children }) => {
       // Use Promise.allSettled to prevent one failure from breaking everything
       const [interviewsResult, analyticsResult, interviewStatsResult] = await Promise.allSettled([
         fetchWithCache(
-          `interviews-page-${page}-limit-${limit}`,
+          getUserCacheKey(`interviews-page-${page}-limit-${limit}`),
           () => interviewAPI.getAll({ limit, page, sort: '-createdAt' }),
           { forceRefresh, ttl: 2 * 60 * 1000 } // 2 minutes for interviews
         ),
         fetchWithCache(
-          'analytics-performance',
+          getUserCacheKey('analytics-performance'),
           () => resultsAPI.getAnalytics(),
           { forceRefresh, ttl: 5 * 60 * 1000 } // 5 minutes for analytics
         ),
         fetchWithCache(
-          'interview-stats-overview',
+          getUserCacheKey('interview-stats-overview'),
           () => interviewAPI.getStats(),
           { forceRefresh, ttl: 5 * 60 * 1000 } // 5 minutes for stats
         )
@@ -63,7 +70,7 @@ export const DataProvider = ({ children }) => {
     } finally {
       setGlobalLoading(false);
     }
-  }, [fetchWithCache]);
+  }, [fetchWithCache, getUserCacheKey]);
 
   const fetchProfileAnalytics = useCallback(async (forceRefresh = false) => {
     console.log('[DataContext] Fetching profile analytics...');
@@ -71,12 +78,12 @@ export const DataProvider = ({ children }) => {
     try {
       const [analyticsResult, interviewsResult] = await Promise.allSettled([
         fetchWithCache(
-          'analytics-performance',
+          getUserCacheKey('analytics-performance'),
           () => resultsAPI.getAnalytics(),
           { forceRefresh, ttl: 5 * 60 * 1000 }
         ),
         fetchWithCache(
-          'user-interviews-all',
+          getUserCacheKey('user-interviews-all'),
           () => userAPI.getInterviews({ limit: 50 }),
           { forceRefresh, ttl: 3 * 60 * 1000 }
         )
@@ -95,11 +102,11 @@ export const DataProvider = ({ children }) => {
       console.error('[DataContext] Failed to load profile analytics:', error);
       throw error;
     }
-  }, [fetchWithCache]);
+  }, [fetchWithCache, getUserCacheKey]);
 
   const fetchInterviewHistory = useCallback(async (params = {}, forceRefresh = false) => {
     const { limit = 20, status, sort = '-createdAt' } = params;
-    const cacheKey = `interview-history-${JSON.stringify(params)}`;
+    const cacheKey = getUserCacheKey(`interview-history-${JSON.stringify(params)}`);
     
     console.log('[DataContext] Fetching interview history...');
     
@@ -111,7 +118,7 @@ export const DataProvider = ({ children }) => {
           { forceRefresh, ttl: 3 * 60 * 1000 }
         ),
         fetchWithCache(
-          'user-results-all',
+          getUserCacheKey('user-results-all'),
           () => resultsAPI.getAll({ sort: '-createdAt', limit: 50 }),
           { forceRefresh, ttl: 3 * 60 * 1000 }
         )
@@ -130,7 +137,7 @@ export const DataProvider = ({ children }) => {
       console.error('[DataContext] Failed to load interview history:', error);
       throw error;
     }
-  }, [fetchWithCache]);
+  }, [fetchWithCache, getUserCacheKey]);
 
   // Cache invalidation helpers
   const invalidateInterviewData = useCallback(() => {
@@ -147,6 +154,11 @@ export const DataProvider = ({ children }) => {
   const invalidateAllData = useCallback(() => {
     clearCache();
     console.log('[DataContext] Cleared all cached data');
+  }, [clearCache]);
+
+  const clearUserCache = useCallback(() => {
+    clearCache(); // For now, clear all cache on user change
+    console.log('[DataContext] Cleared user-specific cached data');
   }, [clearCache]);
 
   // Debug helper
@@ -167,6 +179,7 @@ export const DataProvider = ({ children }) => {
     invalidateInterviewData,
     invalidateAnalyticsData,
     invalidateAllData,
+    clearUserCache,
     
     // State
     globalLoading,
