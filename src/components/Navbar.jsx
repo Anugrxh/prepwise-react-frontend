@@ -15,6 +15,10 @@ const Navbar = () => {
       if (!confirm("Are you sure you want to logout during an interview? All progress will be lost.")) {
         return;
       }
+    } else {
+      if (!confirm("Are you sure you want to log out?")) {
+        return;
+      }
     }
     await logout();
     navigate("/login");
@@ -27,15 +31,15 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="glass-effect border-b border-white/10">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-lg border border-primary-500/30">
               <span className="text-white font-bold text-lg">P</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">Prepwise</span>
+            <span className="text-xl font-bold text-white">Prepwise</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -44,8 +48,8 @@ const Navbar = () => {
               to="/dashboard"
               className={`text-sm font-medium transition-colors ${
                 isActive("/dashboard")
-                  ? "text-primary-600"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "text-primary-400"
+                  : "text-gray-300 hover:text-white"
               }`}
             >
               Dashboard
@@ -54,8 +58,8 @@ const Navbar = () => {
               to="/interview/setup"
               className={`text-sm font-medium transition-colors ${
                 isActive("/interview/setup")
-                  ? "text-primary-600"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "text-primary-400"
+                  : "text-gray-300 hover:text-white"
               }`}
             >
               New Interview
@@ -64,8 +68,8 @@ const Navbar = () => {
               to="/profile"
               className={`text-sm font-medium transition-colors ${
                 isActive("/profile")
-                  ? "text-primary-600"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "text-primary-400"
+                  : "text-gray-300 hover:text-white"
               }`}
             >
               Profile
@@ -82,15 +86,15 @@ const Navbar = () => {
                   className="w-8 h-8 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                  <span className="text-primary-600 font-medium text-sm">
+                <div className="w-8 h-8 bg-primary-500/20 rounded-full flex items-center justify-center border border-primary-500/30">
+                  <span className="text-primary-300 font-medium text-sm">
                     {user?.name?.charAt(0)?.toUpperCase() || "U"}
                   </span>
                 </div>
               )}
               <div className="text-sm">
-                <p className="font-medium text-gray-900">{user?.name}</p>
-                <p className="text-gray-500">{user?.email}</p>
+                <p className="font-medium text-white">{user?.name}</p>
+                <p className="text-gray-300">{user?.email}</p>
               </div>
             </div>
             <button onClick={handleLogout} className="btn btn-outline text-sm">
@@ -180,7 +184,7 @@ const Navbar = () => {
                   )}
                   <div className="text-sm">
                     <p className="font-medium text-gray-900">{user?.name}</p>
-                    <p className="text-gray-500">{user?.email}</p>
+                    <p className="text-gray-300">{user?.email}</p>
                   </div>
                 </div>
                 <button

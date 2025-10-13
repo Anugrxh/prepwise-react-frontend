@@ -18,18 +18,18 @@ const Button = ({
 
   const variants = {
     primary:
-      "bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md",
+      "bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 focus:ring-primary-500 shadow-xl hover:shadow-2xl border border-primary-500/20 backdrop-blur-sm",
     secondary:
-      "bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500 shadow-sm hover:shadow-md",
+      "bg-white/10 text-white hover:bg-white/20 focus:ring-primary-500 shadow-xl hover:shadow-2xl border border-white/20 backdrop-blur-md",
     success:
-      "bg-success-600 text-white hover:bg-success-700 focus:ring-success-500 shadow-sm hover:shadow-md",
+      "bg-gradient-to-r from-success-600 to-success-700 text-white hover:from-success-700 hover:to-success-800 focus:ring-success-500 shadow-xl hover:shadow-2xl border border-success-500/20 backdrop-blur-sm",
     danger:
-      "bg-danger-600 text-white hover:bg-danger-700 focus:ring-danger-500 shadow-sm hover:shadow-md",
+      "bg-gradient-to-r from-danger-600 to-danger-700 text-white hover:from-danger-700 hover:to-danger-800 focus:ring-danger-500 shadow-xl hover:shadow-2xl border border-danger-500/20 backdrop-blur-sm",
     warning:
-      "bg-warning-600 text-white hover:bg-warning-700 focus:ring-warning-500 shadow-sm hover:shadow-md",
+      "bg-gradient-to-r from-warning-600 to-warning-700 text-white hover:from-warning-700 hover:to-warning-800 focus:ring-warning-500 shadow-xl hover:shadow-2xl border border-warning-500/20 backdrop-blur-sm",
     outline:
-      "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-primary-500 shadow-sm hover:shadow-md",
-    ghost: "text-gray-700 hover:bg-gray-100 focus:ring-gray-500",
+      "border border-white/30 bg-white/5 text-white hover:bg-white/15 focus:ring-primary-500 shadow-xl hover:shadow-2xl backdrop-blur-md",
+    ghost: "text-white hover:bg-white/10 focus:ring-primary-500 backdrop-blur-sm",
   };
 
   const sizes = {

@@ -1,8 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Camera, User, History, BarChart3, Settings, Upload } from "lucide-react";
-import toast from 'react-hot-toast';
+import {
+  Camera,
+  User,
+  History,
+  BarChart3,
+  Settings,
+  Upload,
+} from "lucide-react";
+import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import { useData } from "../contexts/DataContext.jsx";
 import { useAuthCache } from "../hooks/useAuthCache.js";
@@ -17,7 +24,9 @@ const Profile = () => {
   const { user, updateUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   useAuthCache(); // Clear cache on user changes
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") || "profile"
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -54,12 +63,16 @@ const Profile = () => {
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab");
-    if (tabFromUrl && ["profile", "history", "analytics"].includes(tabFromUrl)) {
+    if (
+      tabFromUrl &&
+      ["profile", "history", "analytics"].includes(tabFromUrl)
+    ) {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
 
-  const { fetchProfileAnalytics, fetchInterviewHistory, invalidateAllData } = useData();
+  const { fetchProfileAnalytics, fetchInterviewHistory, invalidateAllData } =
+    useData();
 
   // Only load data when tab becomes active (not on every tab change)
   useEffect(() => {
@@ -67,13 +80,13 @@ const Profile = () => {
       loadInterviewHistory();
     } else if (activeTab === "analytics") {
       // Check if we're coming from an interview completion (force refresh)
-      const fromInterview = searchParams.get('from') === 'interview';
+      const fromInterview = searchParams.get("from") === "interview";
       loadAnalytics(fromInterview);
-      
+
       // Clear the 'from' parameter after loading
       if (fromInterview) {
         const newParams = new URLSearchParams(searchParams);
-        newParams.delete('from');
+        newParams.delete("from");
         setSearchParams(newParams, { replace: true });
       }
     }
@@ -87,9 +100,12 @@ const Profile = () => {
   const loadInterviewHistory = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('[Profile] Loading interview history...');
-      
-      const result = await fetchInterviewHistory({ limit: 20, sort: '-createdAt' });
+      console.log("[Profile] Loading interview history...");
+
+      const result = await fetchInterviewHistory({
+        limit: 20,
+        sort: "-createdAt",
+      });
 
       if (result.interviews?.data?.success) {
         setInterviews(result.interviews.data.data.interviews || []);
@@ -104,108 +120,126 @@ const Profile = () => {
       }
     } catch (error) {
       setError("Failed to load interview history");
-      console.error('[Profile] Interview history error:', error);
+      console.error("[Profile] Interview history error:", error);
     } finally {
       setLoading(false);
     }
   }, [fetchInterviewHistory]);
 
-  const loadAnalytics = useCallback(async (forceRefresh = false) => {
-    try {
-      setLoading(true);
-      console.log('[Profile] Loading analytics...', forceRefresh ? '(force refresh)' : '');
-      
-      const result = await fetchProfileAnalytics(forceRefresh);
+  const loadAnalytics = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        setLoading(true);
+        console.log(
+          "[Profile] Loading analytics...",
+          forceRefresh ? "(force refresh)" : ""
+        );
 
-      let analyticsData = {
-        totalInterviews: 0,
-        completedInterviews: 0,
-        averageScore: 0,
-        bestScore: 0,
-        improvementTrend: 0,
-        passRate: 0,
-        categoryTrends: {},
-        gradeDistribution: {},
-        performanceData: [],
-        insights: {},
-      };
+        const result = await fetchProfileAnalytics(forceRefresh);
 
-      // Use real analytics data from API
-      if (result.analytics?.data?.success && result.analytics.data?.data) {
-        const apiData = result.analytics.data.data;
-        console.log('[Profile] Analytics API data:', apiData);
-        
-        analyticsData = {
-          totalInterviews: apiData.totalInterviews || 0,
-          completedInterviews: apiData.totalInterviews || 0,
-          averageScore: apiData.averageScore || 0,
-          bestScore: apiData.bestScore || 0,
-          improvementTrend: apiData.improvementTrend || 0,
-          passRate: apiData.passRate || 0,
-          categoryTrends: apiData.categoryTrends || {},
-          gradeDistribution: apiData.gradeDistribution || {},
-          insights: apiData.insights || {},
-          performanceData: (apiData.recentResults || []).map((result, index) => ({
-            interview: index + 1,
-            score: result.overallScore || 0,
-            date: new Date(result.createdAt).toLocaleDateString(),
-          })),
+        let analyticsData = {
+          totalInterviews: 0,
+          completedInterviews: 0,
+          averageScore: 0,
+          bestScore: 0,
+          improvementTrend: 0,
+          passRate: 0,
+          categoryTrends: {},
+          gradeDistribution: {},
+          performanceData: [],
+          insights: {},
         };
-      } else {
-        console.log('[Profile] Using fallback analytics calculation');
-        
-        // Fallback: calculate from interviews if analytics API is not available
-        if (result.interviews?.data?.success) {
-          const allInterviews = result.interviews.data.data.interviews || [];
-          const completed = allInterviews.filter(
-            (interview) => interview.status === "completed"
-          );
 
-          const completedWithScores = completed.filter(interview => 
-            interview.averageScore !== undefined && interview.averageScore !== null
-          );
+        // Use real analytics data from API
+        if (result.analytics?.data?.success && result.analytics.data?.data) {
+          const apiData = result.analytics.data.data;
+          console.log("[Profile] Analytics API data:", apiData);
 
-          if (completedWithScores.length > 0) {
-            const avgScore = Math.round(
-              completedWithScores.reduce(
-                (sum, interview) => sum + interview.averageScore,
-                0
-              ) / completedWithScores.length
-            );
-
-            const bestScore = Math.max(
-              ...completedWithScores.map((interview) => interview.averageScore)
-            );
-
-            const passRate = Math.round(
-              (completedWithScores.filter(interview => interview.averageScore >= 60).length / completedWithScores.length) * 100
-            );
-
-            analyticsData = {
-              ...analyticsData,
-              totalInterviews: allInterviews.length,
-              completedInterviews: completed.length,
-              averageScore: avgScore,
-              bestScore: bestScore,
-              passRate: passRate,
-              performanceData: completedWithScores.map((interview, index) => ({
+          analyticsData = {
+            totalInterviews: apiData.totalInterviews || 0,
+            completedInterviews: apiData.totalInterviews || 0,
+            averageScore: apiData.averageScore || 0,
+            bestScore: apiData.bestScore || 0,
+            improvementTrend: apiData.improvementTrend || 0,
+            passRate: apiData.passRate || 0,
+            categoryTrends: apiData.categoryTrends || {},
+            gradeDistribution: apiData.gradeDistribution || {},
+            insights: apiData.insights || {},
+            performanceData: (apiData.recentResults || []).map(
+              (result, index) => ({
                 interview: index + 1,
-                score: interview.averageScore,
-                date: new Date(interview.createdAt).toLocaleDateString(),
-              })),
-            };
+                score: result.overallScore || 0,
+                date: new Date(result.createdAt).toLocaleDateString(),
+              })
+            ),
+          };
+        } else {
+          console.log("[Profile] Using fallback analytics calculation");
+
+          // Fallback: calculate from interviews if analytics API is not available
+          if (result.interviews?.data?.success) {
+            const allInterviews = result.interviews.data.data.interviews || [];
+            const completed = allInterviews.filter(
+              (interview) => interview.status === "completed"
+            );
+
+            const completedWithScores = completed.filter(
+              (interview) =>
+                interview.averageScore !== undefined &&
+                interview.averageScore !== null
+            );
+
+            if (completedWithScores.length > 0) {
+              const avgScore = Math.round(
+                completedWithScores.reduce(
+                  (sum, interview) => sum + interview.averageScore,
+                  0
+                ) / completedWithScores.length
+              );
+
+              const bestScore = Math.max(
+                ...completedWithScores.map(
+                  (interview) => interview.averageScore
+                )
+              );
+
+              const passRate = Math.round(
+                (completedWithScores.filter(
+                  (interview) => interview.averageScore >= 60
+                ).length /
+                  completedWithScores.length) *
+                  100
+              );
+
+              analyticsData = {
+                ...analyticsData,
+                totalInterviews: allInterviews.length,
+                completedInterviews: completed.length,
+                averageScore: avgScore,
+                bestScore: bestScore,
+                passRate: passRate,
+                performanceData: completedWithScores.map(
+                  (interview, index) => ({
+                    interview: index + 1,
+                    score: interview.averageScore,
+                    date: new Date(interview.createdAt).toLocaleDateString(),
+                  })
+                ),
+              };
+            }
           }
         }
-      }
 
-      setStats(analyticsData);
-    } catch (error) {
-      console.error('[Profile] Failed to load analytics:', error);
-      setError("Failed to load analytics");
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchProfileAnalytics]);
+        setStats(analyticsData);
+      } catch (error) {
+        console.error("[Profile] Failed to load analytics:", error);
+        setError("Failed to load analytics");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchProfileAnalytics]
+  );
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -227,7 +261,8 @@ const Profile = () => {
         setSuccess("Profile updated successfully");
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to update profile";
+      const errorMessage =
+        error.response?.data?.message || "Failed to update profile";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -273,7 +308,8 @@ const Profile = () => {
         });
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to update password";
+      const errorMessage =
+        error.response?.data?.message || "Failed to update password";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -319,7 +355,8 @@ const Profile = () => {
         setSuccess("Profile image updated successfully");
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to upload image";
+      const errorMessage =
+        error.response?.data?.message || "Failed to upload image";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -381,14 +418,14 @@ const Profile = () => {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div 
+      <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Profile</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="text-4xl font-bold text-white mb-2">Profile</h1>
+        <p className="text-lg text-gray-300">
           Manage your account and view your interview performance
         </p>
       </motion.div>
@@ -405,7 +442,7 @@ const Profile = () => {
                 className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 transition-all duration-200 ${
                   activeTab === tab.id
                     ? "border-primary-500 text-primary-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent text-gray-300 hover:text-white hover:border-gray-500"
                 }`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -424,7 +461,7 @@ const Profile = () => {
         <div className="space-y-8">
           {/* Profile Image Section */}
           <Card animate>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            <h2 className="text-xl font-semibold text-white mb-6">
               Profile Picture
             </h2>
 
@@ -454,10 +491,8 @@ const Profile = () => {
               </div>
 
               <div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  {user?.name}
-                </h3>
-                <p className="text-gray-500">{user?.email}</p>
+                <h3 className="text-lg font-medium text-white">{user?.name}</h3>
+                <p className="text-gray-300">{user?.email}</p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -481,14 +516,14 @@ const Profile = () => {
 
           {/* Profile Information */}
           <Card animate delay={0.1}>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            <h2 className="text-xl font-semibold text-white mb-6">
               Profile Information
             </h2>
 
             <form onSubmit={handleProfileUpdate} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-white-700 mb-2">
                     Full Name
                   </label>
                   <input
@@ -502,18 +537,18 @@ const Profile = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-black-700 mb-2">
                     Email Address
                   </label>
                   <input
                     type="email"
                     name="email"
                     value={profileData.email}
-                    className="input bg-gray-50 cursor-not-allowed"
+                    className="input bg--50 cursor-not-allowed"
                     disabled
                     title="Email cannot be changed"
                   />
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-300">
                     Email address cannot be changed for security reasons
                   </p>
                 </div>
@@ -604,9 +639,7 @@ const Profile = () => {
       )}
 
       {/* Interview History Tab */}
-      {activeTab === "history" && (
-        <InterviewHistory />
-      )}
+      {activeTab === "history" && <InterviewHistory />}
 
       {/* Analytics Tab */}
       {activeTab === "analytics" && (

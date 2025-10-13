@@ -127,10 +127,8 @@ const InterviewSetup = () => {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Setup Your Interview
-        </h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-3xl font-bold text-white">Setup Your Interview</h1>
+        <p className="mt-2 text-gray-300">
           Customize your interview experience by selecting technologies and
           difficulty level.
         </p>
@@ -148,10 +146,10 @@ const InterviewSetup = () => {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Tech Stack Selection */}
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <h2 className="text-xl font-semibold text-white mb-4">
             Technology Stack
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <p className="text-sm text-gray-300 mb-4">
             Select the technologies you want to be interviewed on:
           </p>
 
@@ -163,8 +161,8 @@ const InterviewSetup = () => {
                 onClick={() => handleTechStackChange(tech)}
                 className={`p-3 text-sm font-medium rounded-lg border transition-colors ${
                   formData.techStack.includes(tech)
-                    ? "bg-primary-50 border-primary-200 text-primary-700"
-                    : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"
+                    ? "bg-primary-500/20 border-primary-500/30 text-primary-300"
+                    : "bg-white/5 border-white/20 text-white hover:bg-white/10"
                 }`}
               >
                 {tech}
@@ -196,20 +194,20 @@ const InterviewSetup = () => {
           {/* Selected Technologies */}
           {formData.techStack.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">
+              <p className="text-sm font-medium text-white mb-2">
                 Selected Technologies:
               </p>
               <div className="flex flex-wrap gap-2">
                 {formData.techStack.map((tech) => (
                   <span
                     key={tech}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-500/20 text-primary-300 border border-primary-500/30"
                   >
                     {tech}
                     <button
                       type="button"
                       onClick={() => handleRemoveTech(tech)}
-                      className="ml-2 text-primary-600 hover:text-primary-800"
+                      className="ml-2 text-primary-300 hover:text-primary-200"
                     >
                       <svg
                         className="w-4 h-4"
@@ -240,14 +238,14 @@ const InterviewSetup = () => {
 
         {/* Interview Settings */}
         <div className="card">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <h2 className="text-xl font-semibold text-white mb-4">
             Interview Settings
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Hardness Level */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Difficulty Level
               </label>
               <select
@@ -266,7 +264,7 @@ const InterviewSetup = () => {
 
             {/* Experience Level */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Experience Level
               </label>
               <select
@@ -285,14 +283,14 @@ const InterviewSetup = () => {
 
             {/* Number of Questions */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-white mb-2">
                 Number of Questions
               </label>
               <input
                 type="number"
                 name="numberOfQuestions"
                 min="3"
-                max="10"
+                max="15"
                 value={formData.numberOfQuestions}
                 onChange={handleChange}
                 className={`input ${
@@ -301,7 +299,7 @@ const InterviewSetup = () => {
                     : ""
                 }`}
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-300">
                 Choose between 3 and 10 questions for your interview.
               </p>
               {validationErrors.numberOfQuestions && (

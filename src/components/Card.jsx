@@ -34,8 +34,8 @@ const Card = ({
 
   return (
     <Component
-      className={`bg-white rounded-xl shadow-sm border border-gray-200 p-6 transition-all duration-200 ${
-        hover ? 'hover:shadow-lg cursor-pointer' : ''
+      className={`liquid-glass p-6 transition-all duration-300 ${
+        hover ? 'hover:shadow-2xl hover:-translate-y-2 hover:bg-white/15 cursor-pointer' : ''
       } ${className}`}
       variants={animate ? cardVariants : undefined}
       initial={animate ? "hidden" : undefined}

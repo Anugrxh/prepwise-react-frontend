@@ -12,12 +12,12 @@ const Badge = ({
   const baseClasses = 'inline-flex items-center font-medium rounded-full';
   
   const variants = {
-    primary: 'bg-primary-100 text-primary-800',
-    secondary: 'bg-gray-100 text-gray-800',
-    success: 'bg-success-100 text-success-800',
-    danger: 'bg-danger-100 text-danger-800',
-    warning: 'bg-warning-100 text-warning-800',
-    info: 'bg-blue-100 text-blue-800',
+    primary: 'bg-primary-500/20 text-primary-300 border border-primary-500/30 backdrop-blur-sm',
+    secondary: 'bg-white/10 text-gray-300 border border-white/20 backdrop-blur-sm',
+    success: 'bg-success-500/20 text-success-300 border border-success-500/30 backdrop-blur-sm',
+    danger: 'bg-danger-500/20 text-danger-300 border border-danger-500/30 backdrop-blur-sm',
+    warning: 'bg-warning-500/20 text-warning-300 border border-warning-500/30 backdrop-blur-sm',
+    info: 'bg-blue-500/20 text-blue-300 border border-blue-500/30 backdrop-blur-sm',
   };
 
   const sizes = {

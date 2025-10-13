@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Trophy, 
-  TrendingUp, 
-  TrendingDown, 
-  Target, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Trophy,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Clock,
+  CheckCircle,
+  XCircle,
   AlertTriangle,
   Lightbulb,
   Plus,
   ArrowLeft,
   Award,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 import { useInterview } from "../contexts/InterviewContext.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
@@ -74,15 +74,15 @@ const Results = () => {
   };
 
   const getScoreTextColor = (score) => {
-    if (score >= 80) return "text-success-600";
-    if (score >= 60) return "text-warning-600";
-    return "text-danger-600";
+    if (score >= 80) return "text-success-400";
+    if (score >= 60) return "text-warning-400";
+    return "text-danger-400";
   };
 
   const getGradeColor = (grade) => {
-    if (["A+", "A", "A-"].includes(grade)) return "text-success-600";
-    if (["B+", "B", "B-"].includes(grade)) return "text-warning-600";
-    return "text-danger-600";
+    if (["A+", "A", "A-"].includes(grade)) return "text-success-400";
+    if (["B+", "B", "B-"].includes(grade)) return "text-warning-400";
+    return "text-danger-400";
   };
 
   const formatDuration = (seconds) => {
@@ -100,8 +100,8 @@ const Results = () => {
         >
           <LoadingSpinner size="lg" />
         </motion.div>
-        <motion.p 
-          className="mt-4 text-gray-600"
+        <motion.p
+          className="mt-4 text-gray-300"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
@@ -116,17 +116,19 @@ const Results = () => {
 
   if (!results && !currentInterview) {
     return (
-      <motion.div 
+      <motion.div
         className="text-center py-12"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <XCircle className="w-8 h-8 text-gray-400" />
+        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">
+          <XCircle className="w-8 h-8 text-gray-300" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Results not found</h2>
-        <p className="text-gray-600 mb-6">
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Results not found
+        </h2>
+        <p className="text-gray-300 mb-6">
           The results you're looking for don't exist.
         </p>
         <Button
@@ -144,19 +146,19 @@ const Results = () => {
     return (
       <div className="max-w-2xl mx-auto text-center">
         <Card animate>
-          <motion.div 
+          <motion.div
             className="mb-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="w-16 h-16 bg-warning-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-warning-600" />
+            <div className="w-16 h-16 bg-warning-500/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-warning-500/30">
+              <AlertTriangle className="w-8 h-8 text-warning-400" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-white mb-2">
               Results Not Available
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-300">
               Results for this interview are not yet available. This might
               happen if the interview was not completed or there was an error
               generating the results.
@@ -171,10 +173,7 @@ const Results = () => {
             >
               Back to Dashboard
             </Button>
-            <Button 
-              onClick={loadResults} 
-              variant="primary"
-            >
+            <Button onClick={loadResults} variant="primary">
               Try Again
             </Button>
           </div>
@@ -186,16 +185,16 @@ const Results = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="text-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          Interview Results 🎉
+        <h1 className="text-4xl font-bold text-white mb-2">
+          Interview Results
         </h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-lg text-gray-300">
           Here's how you performed in your interview
         </p>
       </motion.div>
@@ -203,10 +202,10 @@ const Results = () => {
       {/* Overall Score */}
       <Card animate className="text-center relative overflow-hidden">
         {/* Background decoration */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-transparent to-success-50 opacity-50"></div>
-        
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-emerald-500/10 opacity-50"></div>
+
         <div className="relative z-10">
-          <motion.div 
+          <motion.div
             className="mb-6"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -226,7 +225,7 @@ const Results = () => {
                 {results.overallScore}%
               </div>
             </div>
-            
+
             <div
               className={`text-3xl font-semibold mb-4 ${getGradeColor(
                 results.grade
@@ -234,79 +233,91 @@ const Results = () => {
             >
               Grade: {results.grade}
             </div>
-            
-            <Badge 
-              variant={getScoreColor(results.overallScore)} 
+
+            <Badge
+              variant={getScoreColor(results.overallScore)}
               size="lg"
               className="text-lg px-6 py-2"
             >
               {results.passed ? (
-                <><CheckCircle className="w-5 h-5 mr-2" /> Passed</>
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" /> Passed
+                </>
               ) : (
-                <><XCircle className="w-5 h-5 mr-2" /> Needs Improvement</>
+                <>
+                  <XCircle className="w-5 h-5 mr-2" /> Needs Improvement
+                </>
               )}
             </Badge>
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <motion.div 
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Target className="w-6 h-6 text-primary-600" />
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Target className="w-6 h-6 text-violet-400" />
               </div>
-              <p className="text-sm text-gray-500 mb-1">Questions Answered</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-300 mb-1">Questions Answered</p>
+              <p className="text-xl font-bold text-white">
                 {results.questionsAnswered}/{results.totalQuestions}
               </p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <BarChart3 className="w-6 h-6 text-success-600" />
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <BarChart3 className="w-6 h-6 text-emerald-400" />
               </div>
-              <p className="text-sm text-gray-500 mb-1">Completion</p>
-              <p className="text-xl font-bold text-gray-900">{results.completionPercentage}%</p>
+              <p className="text-sm text-gray-300 mb-1">Completion</p>
+              <p className="text-xl font-bold text-white">
+                {results.completionPercentage || 0}%
+              </p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <div className="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                <Clock className="w-6 h-6 text-warning-600" />
+              <div className="w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-6 h-6 text-amber-400" />
               </div>
-              <p className="text-sm text-gray-500 mb-1">Time Taken</p>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-sm text-gray-300 mb-1">Time Taken</p>
+              <p className="text-xl font-bold text-white">
                 {formatDuration(results.completionTime)}
               </p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <div className={`w-12 h-12 ${results.passed ? 'bg-success-100' : 'bg-danger-100'} rounded-lg flex items-center justify-center mx-auto mb-2`}>
+              <div
+                className={`w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center mx-auto mb-2`}
+              >
                 {results.passed ? (
-                  <Award className="w-6 h-6 text-success-600" />
+                  <Award className="w-6 h-6 text-emerald-400" />
                 ) : (
-                  <XCircle className="w-6 h-6 text-danger-600" />
+                  <XCircle className="w-6 h-6 text-red-400" />
                 )}
               </div>
-              <p className="text-sm text-gray-500 mb-1">Status</p>
-              <p className={`text-xl font-bold ${results.passed ? 'text-success-600' : 'text-danger-600'}`}>
+              <p className="text-sm text-gray-300 mb-1">Status</p>
+              <p
+                className={`text-xl font-bold ${
+                  results.passed ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
                 {results.passed ? "Passed" : "Failed"}
               </p>
             </motion.div>
@@ -316,61 +327,61 @@ const Results = () => {
 
       {/* Category Scores */}
       <Card animate delay={0.1}>
-        <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-          <BarChart3 className="w-6 h-6 mr-2 text-primary-600" />
+        <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
+          <BarChart3 className="w-6 h-6 mr-2 text-violet-400" />
           Performance Breakdown
         </h2>
         <div className="space-y-6">
-          {Object.entries(results.categoryScores).map(([category, score], index) => {
-            if (score === null) return null;
+          {Object.entries(results.categoryScores).map(
+            ([category, score], index) => {
+              if (score === null) return null;
 
-            const categoryNames = {
-              technicalKnowledge: "Technical Knowledge",
-              communication: "Communication",
-              problemSolving: "Problem Solving",
-              confidence: "Confidence",
-              facialAnalysis: "Presentation",
-            };
+              const categoryNames = {
+                technicalKnowledge: "Technical Knowledge",
+                communication: "Communication",
+                problemSolving: "Problem Solving",
+                confidence: "Confidence",
+                facialAnalysis: "Presentation",
+              };
 
-            const categoryIcons = {
-              technicalKnowledge: Target,
-              communication: CheckCircle,
-              problemSolving: Lightbulb,
-              confidence: TrendingUp,
-              facialAnalysis: Award,
-            };
+              const categoryIcons = {
+                technicalKnowledge: Target,
+                communication: CheckCircle,
+                problemSolving: Lightbulb,
+                confidence: TrendingUp,
+                facialAnalysis: Award,
+              };
 
-            const Icon = categoryIcons[category] || Target;
+              const Icon = categoryIcons[category] || Target;
 
-            return (
-              <motion.div 
-                key={category}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 + (index * 0.1) }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 bg-${getScoreColor(score)}-100 rounded-lg flex items-center justify-center`}>
-                      <Icon className={`w-4 h-4 text-${getScoreColor(score)}-600`} />
+              return (
+                <motion.div
+                  key={category}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 + index * 0.1 }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center">
+                        <Icon className="w-4 h-4 text-violet-400" />
+                      </div>
+                      <span className="text-sm font-medium text-white">
+                        {categoryNames[category] || category}
+                      </span>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">
-                      {categoryNames[category] || category}
-                    </span>
+                    <Badge variant={getScoreColor(score)}>{score}%</Badge>
                   </div>
-                  <Badge variant={getScoreColor(score)}>
-                    {score}%
-                  </Badge>
-                </div>
-                <ProgressBar
-                  value={score}
-                  variant={getScoreColor(score)}
-                  size="lg"
-                  animate
-                />
-              </motion.div>
-            );
-          })}
+                  <ProgressBar
+                    value={score}
+                    variant={getScoreColor(score)}
+                    size="lg"
+                    animate
+                  />
+                </motion.div>
+              );
+            }
+          )}
         </div>
       </Card>
 
@@ -378,29 +389,31 @@ const Results = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
         <Card animate delay={0.2}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <CheckCircle className="w-5 h-5 text-success-500 mr-2" />
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <CheckCircle className="w-5 h-5 text-emerald-400 mr-2" />
             Strengths
           </h3>
           {results.strengths && results.strengths.length > 0 ? (
             <ul className="space-y-3">
               {results.strengths.map((strength, index) => (
-                <motion.li 
-                  key={index} 
+                <motion.li
+                  key={index}
                   className="flex items-start"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2 + (index * 0.1) }}
+                  transition={{ delay: 0.2 + index * 0.1 }}
                 >
-                  <div className="w-6 h-6 bg-success-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <CheckCircle className="w-3 h-3 text-success-600" />
+                  <div className="w-6 h-6 bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/30 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <CheckCircle className="w-3 h-3 text-emerald-400" />
                   </div>
-                  <span className="text-sm text-gray-700 leading-relaxed">{strength}</span>
+                  <span className="text-sm text-gray-300 leading-relaxed">
+                    {strength}
+                  </span>
                 </motion.li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm text-gray-400 italic">
               No specific strengths identified.
             </p>
           )}
@@ -408,29 +421,31 @@ const Results = () => {
 
         {/* Weaknesses */}
         <Card animate delay={0.3}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <AlertTriangle className="w-5 h-5 text-warning-500 mr-2" />
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <AlertTriangle className="w-5 h-5 text-amber-400 mr-2" />
             Areas for Improvement
           </h3>
           {results.weaknesses && results.weaknesses.length > 0 ? (
             <ul className="space-y-3">
               {results.weaknesses.map((weakness, index) => (
-                <motion.li 
-                  key={index} 
+                <motion.li
+                  key={index}
                   className="flex items-start"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + (index * 0.1) }}
+                  transition={{ delay: 0.3 + index * 0.1 }}
                 >
-                  <div className="w-6 h-6 bg-warning-100 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                    <AlertTriangle className="w-3 h-3 text-warning-600" />
+                  <div className="w-6 h-6 bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
+                    <AlertTriangle className="w-3 h-3 text-amber-400" />
                   </div>
-                  <span className="text-sm text-gray-700 leading-relaxed">{weakness}</span>
+                  <span className="text-sm text-gray-300 leading-relaxed">
+                    {weakness}
+                  </span>
                 </motion.li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm text-gray-400 italic">
               No specific areas for improvement identified.
             </p>
           )}
@@ -440,25 +455,27 @@ const Results = () => {
       {/* Recommendations */}
       {results.recommendations && results.recommendations.length > 0 && (
         <Card animate delay={0.4}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Lightbulb className="w-5 h-5 text-primary-500 mr-2" />
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <Lightbulb className="w-5 h-5 text-violet-400 mr-2" />
             Recommendations
           </h3>
           <ul className="space-y-4">
             {results.recommendations.map((recommendation, index) => (
-              <motion.li 
-                key={index} 
+              <motion.li
+                key={index}
                 className="flex items-start"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + (index * 0.1) }}
+                transition={{ delay: 0.4 + index * 0.1 }}
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center mr-4 mt-0.5 flex-shrink-0 shadow-sm">
+                <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-violet-600 backdrop-blur-sm border border-violet-500/30 rounded-full flex items-center justify-center mr-4 mt-0.5 flex-shrink-0 shadow-sm">
                   <span className="text-sm font-bold text-white">
                     {index + 1}
                   </span>
                 </div>
-                <span className="text-sm text-gray-700 leading-relaxed">{recommendation}</span>
+                <span className="text-sm text-gray-300 leading-relaxed">
+                  {recommendation}
+                </span>
               </motion.li>
             ))}
           </ul>
@@ -468,12 +485,12 @@ const Results = () => {
       {/* Detailed Feedback */}
       {results.detailedFeedback && (
         <Card animate delay={0.5}>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <BarChart3 className="w-5 h-5 text-primary-500 mr-2" />
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <BarChart3 className="w-5 h-5 text-violet-400 mr-2" />
             Detailed Feedback
           </h3>
-          <div className="bg-gray-50 rounded-lg p-6">
-            <p className="text-gray-700 leading-relaxed text-base">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-6">
+            <p className="text-gray-300 leading-relaxed text-base">
               {results.detailedFeedback}
             </p>
           </div>
@@ -481,7 +498,7 @@ const Results = () => {
       )}
 
       {/* Actions */}
-      <motion.div 
+      <motion.div
         className="flex flex-col sm:flex-row gap-4 justify-center"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

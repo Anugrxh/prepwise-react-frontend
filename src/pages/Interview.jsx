@@ -672,10 +672,8 @@ Welcome to your interview! We'll be going through ${
   if (!currentInterview) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Interview not found
-        </h2>
-        <p className="mt-2 text-gray-600">
+        <h2 className="text-2xl font-bold text-white">Interview not found</h2>
+        <p className="mt-2 text-gray-300">
           The interview you're looking for doesn't exist.
         </p>
         <button
@@ -693,9 +691,9 @@ Welcome to your interview! We'll be going through ${
       <div className="max-w-2xl mx-auto text-center">
         <div className="card">
           <div className="mb-6">
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-8 h-8 text-primary-600"
+                className="w-8 h-8 text-violet-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -708,42 +706,42 @@ Welcome to your interview! We'll be going through ${
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-white mb-2">
               Ready to Start Your Interview?
             </h1>
-            <p className="text-gray-600">
+            <p className="text-gray-300">
               You're about to begin an interview with{" "}
               {currentInterview.numberOfQuestions} questions covering{" "}
               {currentInterview.techStack.join(", ")}. <br />
-              <span className="font-semibold text-primary-600">
+              <span className="font-semibold text-violet-400">
                 Our AI assistant will guide you through the questions. You can
                 answer by speaking.
               </span>
             </p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4 mb-6">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium text-gray-700">Difficulty:</span>
-                <span className="ml-2 text-gray-600">
+                <span className="font-medium text-white">Difficulty:</span>
+                <span className="ml-2 text-gray-300">
                   {currentInterview.hardnessLevel}
                 </span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Experience:</span>
-                <span className="ml-2 text-gray-600">
+                <span className="font-medium text-white">Experience:</span>
+                <span className="ml-2 text-gray-300">
                   {currentInterview.experienceLevel}
                 </span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Questions:</span>
-                <span className="ml-2 text-gray-600">
+                <span className="font-medium text-white">Questions:</span>
+                <span className="ml-2 text-gray-300">
                   {currentInterview.numberOfQuestions}
                 </span>
               </div>
               <div>
-                <span className="font-medium text-gray-700">Technologies:</span>
-                <span className="ml-2 text-gray-600">
+                <span className="font-medium text-white">Technologies:</span>
+                <span className="ml-2 text-gray-300">
                   {currentInterview.techStack.length}
                 </span>
               </div>
@@ -792,10 +790,10 @@ Welcome to your interview! We'll be going through ${
   return (
     <div className="max-w-6xl mx-auto">
       {isInterviewActive && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="mb-4 p-3 bg-amber-500/10 backdrop-blur-sm border border-amber-500/30 rounded-lg">
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-            <p className="text-sm text-yellow-800">
+            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+            <p className="text-sm text-amber-200">
               <strong>Interview in progress</strong> - Navigation is disabled to
               prevent accidental data loss. Use the "Abort Interview" button if
               you need to leave.
@@ -815,17 +813,17 @@ Welcome to your interview! We'll be going through ${
 
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-white">
             Question {currentQuestionIndex + 1} of{" "}
             {currentInterview.questions.length}
           </span>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-300">
             {answeredCount} answered
           </span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-full h-2">
           <div
-            className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-violet-500 to-violet-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           ></div>
         </div>
@@ -840,24 +838,24 @@ Welcome to your interview! We'll be going through ${
                   Question {currentQuestion.questionNumber}
                 </span>
                 {currentQuestion.category && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-300">
                     {currentQuestion.category}
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 leading-relaxed">
+              <h2 className="text-xl font-semibold text-white leading-relaxed">
                 {currentQuestion.questionText}
               </h2>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-white">
                   Your Answer (speak or type)
                 </label>
                 {isTranscribing && (
-                  <div className="flex items-center space-x-2 text-sm text-blue-600">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                  <div className="flex items-center space-x-2 text-sm text-violet-400">
+                    <div className="w-2 h-2 bg-violet-400 rounded-full animate-pulse"></div>
                     <span>Transcribing...</span>
                   </div>
                 )}
@@ -868,23 +866,23 @@ Welcome to your interview! We'll be going through ${
                 onChange={(e) => handleAnswerChange(e.target.value)}
                 placeholder="Speak your answer and it will appear here, or type manually..."
                 className={`textarea min-h-32 max-h-64 ${
-                  isTranscribing ? "border-blue-300 bg-blue-50" : ""
+                  isTranscribing ? "border-violet-400/50 bg-violet-500/10" : ""
                 }`}
                 rows={4}
               />
-              <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
+              <div className="mt-2 flex justify-between items-center text-sm text-gray-300">
                 <div className="flex items-center space-x-4">
                   <span>
                     {getCurrentAnswer().length}/5000 characters
                     {getCurrentAnswer().length > 0 &&
                       getCurrentAnswer().length < 10 && (
-                        <span className="text-red-500 ml-2">
+                        <span className="text-red-400 ml-2">
                           Answer must be at least 10 characters
                         </span>
                       )}
                   </span>
                   {isTranscribing && (
-                    <span className="text-blue-600 font-medium">
+                    <span className="text-violet-400 font-medium">
                       Live transcription active
                     </span>
                   )}
@@ -921,7 +919,7 @@ Welcome to your interview! We'll be going through ${
                     navigate("/dashboard");
                   }
                 }}
-                className="btn btn-outline text-red-600 border-red-300 hover:bg-red-50"
+                className="btn btn-outline text-red-400 border-red-500/30 hover:bg-red-500/20"
               >
                 Abort Interview
               </button>
@@ -949,10 +947,10 @@ Welcome to your interview! We'll be going through ${
 
         <div className="lg:col-span-1 space-y-8">
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-white mb-4">
               AI Assistant Status
             </h3>
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg mb-4">
+            <div className="flex items-center space-x-3 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg mb-4">
               <div
                 className={`w-4 h-4 rounded-full ${
                   isVapiActive
@@ -963,7 +961,7 @@ Welcome to your interview! We'll be going through ${
                 }`}
               ></div>
               <div>
-                <p className="font-medium text-gray-800">
+                <p className="font-medium text-white">
                   {isVapiActive
                     ? isAssistantSpeaking
                       ? "Assistant Speaking..."
@@ -974,7 +972,7 @@ Welcome to your interview! We'll be going through ${
                     ? "Connecting..."
                     : "Not Connected"}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-300">
                   {isVapiActive
                     ? isAssistantSpeaking
                       ? "Assistant is asking the question..."
@@ -990,13 +988,19 @@ Welcome to your interview! We'll be going through ${
 
             {/* Transcript Debug Info - Remove in production */}
             {process.env.NODE_ENV === "development" && (
-              <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs">
-                <p>
+              <div className="mt-4 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-xs">
+                <p className="text-white">
                   <strong>Debug Info:</strong>
                 </p>
-                <p>Current transcript: "{currentTranscript}"</p>
-                <p>Is transcribing: {isTranscribing ? "Yes" : "No"}</p>
-                <p>Saved answer length: {getCurrentAnswer().length}</p>
+                <p className="text-gray-300">
+                  Current transcript: "{currentTranscript}"
+                </p>
+                <p className="text-gray-300">
+                  Is transcribing: {isTranscribing ? "Yes" : "No"}
+                </p>
+                <p className="text-gray-300">
+                  Saved answer length: {getCurrentAnswer().length}
+                </p>
               </div>
             )}
 
@@ -1034,8 +1038,8 @@ Welcome to your interview! We'll be going through ${
 
             {isVapiActive && (
               <div className="mt-4 space-y-3">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800">
+                <div className="p-3 bg-violet-500/10 backdrop-blur-sm border border-violet-500/30 rounded-lg">
+                  <p className="text-sm text-violet-200">
                     <strong>Tip:</strong> Speak clearly after the assistant
                     finishes asking the question. Your speech will appear in the
                     answer box automatically.
@@ -1043,11 +1047,11 @@ Welcome to your interview! We'll be going through ${
                 </div>
 
                 {isTranscribing && currentTranscript && (
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <p className="text-sm text-green-800 mb-2">
+                  <div className="p-3 bg-emerald-500/10 backdrop-blur-sm border border-emerald-500/30 rounded-lg">
+                    <p className="text-sm text-emerald-200 mb-2">
                       <strong>Current transcript:</strong>
                     </p>
-                    <p className="text-sm text-green-700 italic">
+                    <p className="text-sm text-emerald-300 italic">
                       "{currentTranscript}"
                     </p>
                     <button
@@ -1064,7 +1068,7 @@ Welcome to your interview! We'll be going through ${
                         setCurrentTranscript("");
                         setIsTranscribing(false);
                       }}
-                      className="mt-2 btn btn-sm btn-outline text-green-700 border-green-300 hover:bg-green-100"
+                      className="mt-2 btn btn-sm btn-outline text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20"
                     >
                       Save Transcript
                     </button>
@@ -1075,10 +1079,10 @@ Welcome to your interview! We'll be going through ${
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <h3 className="text-lg font-semibold text-white mb-4">
               Video Recording (Optional)
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-gray-300 mb-4">
               Enable your camera for optional facial analysis to help improve
               your presentation skills.
             </p>
@@ -1090,7 +1094,7 @@ Welcome to your interview! We'll be going through ${
                   onChange={(e) => setWebcamEnabled(e.target.checked)}
                   className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-gray-300">
                   Enable camera recording
                 </span>
               </label>
@@ -1106,11 +1110,11 @@ Welcome to your interview! We'll be going through ${
 
       {showConfirmSubmit && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-gray-900/90 backdrop-blur-sm border border-white/20 rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">
               Submit Interview?
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-300 mb-4">
               You have answered {answeredCount} out of{" "}
               {currentInterview.questions.length} questions. Once submitted, you
               cannot make changes.

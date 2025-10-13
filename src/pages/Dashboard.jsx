@@ -251,18 +251,18 @@ const Dashboard = () => {
     trend,
     delay = 0,
   }) => (
-    <Card animate delay={delay} className="text-center">
+    <Card animate delay={delay} className="text-center glass-card">
       <div
-        className={`w-12 h-12 bg-${color}-100 rounded-lg flex items-center justify-center mx-auto mb-4`}
+        className={`w-12 h-12 bg-${color}-500/20 rounded-xl flex items-center justify-center mx-auto mb-4 border border-${color}-500/30`}
       >
-        <Icon className={`w-6 h-6 text-${color}-600`} />
+        <Icon className={`w-6 h-6 text-${color}-400`} />
       </div>
-      <div className="text-2xl font-bold text-gray-900 mb-1">{value}</div>
-      <div className="text-sm text-gray-600 mb-2">{title}</div>
+      <div className="text-2xl font-bold text-white mb-1">{value}</div>
+      <div className="text-sm text-gray-300 mb-2">{title}</div>
       {trend !== undefined && (
         <div
           className={`flex items-center justify-center text-xs ${
-            trend >= 0 ? "text-success-600" : "text-danger-600"
+            trend >= 0 ? "text-success-400" : "text-danger-400"
           }`}
         >
           <TrendingUp className="w-3 h-3 mr-1" />
@@ -291,10 +291,10 @@ const Dashboard = () => {
         transition={{ duration: 0.5 }}
       >
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-bold text-white mb-2">
             Welcome back, {user?.name?.split(" ")[0]}! 👋
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-300">
             Ready to ace your next interview? Let's practice!
           </p>
         </div>
@@ -353,7 +353,7 @@ const Dashboard = () => {
             {stats.statusDistribution &&
               Object.keys(stats.statusDistribution).length > 0 && (
                 <Card animate delay={0.35}>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-lg font-semibold text-white-900 mb-4">
                     Interview Status
                   </h3>
                   <div className="space-y-3">
@@ -387,7 +387,7 @@ const Dashboard = () => {
                               <Badge variant={config.color} size="sm">
                                 {config.label}
                               </Badge>
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-white-300">
                                 {count}
                               </span>
                             </div>
@@ -398,7 +398,7 @@ const Dashboard = () => {
                                   style={{ width: `${percentage}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-500 w-8">
+                              <span className="text-xs text-white-500 w-8">
                                 {Math.round(percentage)}%
                               </span>
                             </div>
@@ -414,7 +414,7 @@ const Dashboard = () => {
             {stats.hardnessDistribution &&
               Object.keys(stats.hardnessDistribution).length > 0 && (
                 <Card animate delay={0.4}>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-lg font-semibold text-white-900 mb-4">
                     Difficulty Levels
                   </h3>
                   <div className="space-y-3">
@@ -442,10 +442,10 @@ const Dashboard = () => {
                           >
                             <div className="flex items-center space-x-2">
                               <span className="text-sm">{config.icon}</span>
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-sm font-medium text-white-700">
                                 {level}
                               </span>
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-white-600">
                                 ({count})
                               </span>
                             </div>
@@ -456,7 +456,7 @@ const Dashboard = () => {
                                   style={{ width: `${percentage}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-500 w-8">
+                              <span className="text-xs text-white-500 w-8">
                                 {Math.round(percentage)}%
                               </span>
                             </div>
@@ -472,7 +472,7 @@ const Dashboard = () => {
             {stats.experienceDistribution &&
               Object.keys(stats.experienceDistribution).length > 0 && (
                 <Card animate delay={0.45}>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-lg font-semibold text-white-900 mb-4">
                     Experience Levels
                   </h3>
                   <div className="space-y-3">
@@ -502,10 +502,10 @@ const Dashboard = () => {
                           >
                             <div className="flex items-center space-x-2">
                               <span className="text-sm">{config.icon}</span>
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-sm font-medium text-white-700">
                                 {level}
                               </span>
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-white-600">
                                 ({count})
                               </span>
                             </div>
@@ -516,7 +516,7 @@ const Dashboard = () => {
                                   style={{ width: `${percentage}%` }}
                                 />
                               </div>
-                              <span className="text-xs text-gray-500 w-8">
+                              <span className="text-xs text-white-500 w-8">
                                 {Math.round(percentage)}%
                               </span>
                             </div>
@@ -557,7 +557,7 @@ const Dashboard = () => {
       {/* Recent Interviews */}
       <Card animate delay={0.6}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-white">
             Recent Interviews
           </h2>
           <div className="flex items-center space-x-2">
@@ -605,13 +605,13 @@ const Dashboard = () => {
 
         {stats.recentInterviews.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BookOpen className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm border border-white/20">
+              <BookOpen className="w-8 h-8 text-gray-300" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-white mb-2">
               No interviews yet
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-300 mb-6">
               Get started by creating your first interview.
             </p>
             <Link to="/interview/setup">
@@ -626,14 +626,14 @@ const Dashboard = () => {
               {stats.recentInterviews.map((interview, index) => (
                 <motion.div
                   key={interview._id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
+                  className="flex items-center justify-between p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                      <h3 className="text-sm font-medium text-white truncate">
                         {interview.techStack?.join(", ") || "General Interview"}
                       </h3>
                       {getStatusBadge(interview.status)}
@@ -652,7 +652,7 @@ const Dashboard = () => {
                           </span>
                         )}
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center space-x-4 text-sm text-gray-300">
                       <div className="flex items-center space-x-1">
                         <Target className="w-3 h-3" />
                         <span>
@@ -709,7 +709,7 @@ const Dashboard = () => {
             {/* Pagination */}
             {totalInterviews > interviewsPerPage && (
               <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-white-500">
                   Showing {(currentPage - 1) * interviewsPerPage + 1} to{" "}
                   {Math.min(currentPage * interviewsPerPage, totalInterviews)}{" "}
                   of {totalInterviews} interviews
@@ -725,7 +725,7 @@ const Dashboard = () => {
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-300">
                     Page {currentPage} of{" "}
                     {Math.ceil(totalInterviews / interviewsPerPage)}
                   </span>
@@ -757,10 +757,10 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="ml-4 flex-1">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-white-900">
                 Start New Interview
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-300">
                 Create a customized interview session
               </p>
             </div>
@@ -778,10 +778,10 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="ml-4 flex-1">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-white-900">
                 View Analytics
               </h3>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-300">
                 Check your progress and performance
               </p>
             </div>

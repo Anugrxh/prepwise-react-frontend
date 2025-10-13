@@ -43,8 +43,8 @@ const ProgressBar = ({
     <div className={`w-full ${className}`}>
       {showLabel && (
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">{label}</span>
-          <span className="text-sm text-gray-500">{Math.round(percentage)}%</span>
+          <span className="text-sm font-medium text-white">{label}</span>
+          <span className="text-sm text-gray-300">{Math.round(percentage)}%</span>
         </div>
       )}
       

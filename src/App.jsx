@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -27,8 +27,13 @@ function AppContent() {
   const location = useLocation();
   const isInterviewPage = location.pathname.includes('/interview/') && !location.pathname.includes('/setup');
 
+  // Enable dark mode
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 aurora-bg">
       {!isInterviewPage && <Navbar />}
       <main className={`container mx-auto px-4 ${isInterviewPage ? 'py-4' : 'py-8'}`}>
               <Routes>
