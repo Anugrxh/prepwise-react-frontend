@@ -49,6 +49,7 @@ const Interview = () => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const vapiInitializedRef = useRef(false);
   const currentQuestionIndexRef = useRef(0);
+  const vapiStartAttemptedRef = useRef(false);
 
   // Effect for Vapi Initialization - FIXED VERSION
   useEffect(() => {
@@ -214,12 +215,20 @@ const Interview = () => {
       vapi &&
       !isVapiActive &&
       !isVapiStarting &&
-      interviewStarted
+      interviewStarted &&
+      !vapiStartAttemptedRef.current
     ) {
-      console.log("Conditions met - starting Vapi automatically...");
+      console.log("✅ Starting Vapi automatically - first attempt");
+      vapiStartAttemptedRef.current = true;
       startVapiCall();
     }
-  }, [currentInterview, vapi, isVapiActive, isVapiStarting, interviewStarted]);
+  }, [
+    currentInterview?.status,
+    vapi,
+    isVapiActive,
+    isVapiStarting,
+    interviewStarted,
+  ]);
 
   // Effect to handle greeting and question asking - IMPROVED
   useEffect(() => {
@@ -236,20 +245,44 @@ const Interview = () => {
   }, [currentQuestionIndex, isVapiActive, currentInterview, hasGreeted]);
 
   const startVapiCall = async () => {
+    console.log("🎤 startVapiCall called", {
+      hasVapi: !!vapi,
+      isVapiStarting,
+      isVapiActive,
+    });
+
     if (!vapi || isVapiStarting || isVapiActive) {
-      console.log("Vapi call prevented - already active or starting");
+      console.log("❌ Vapi call prevented - already active or starting");
       return;
     }
 
     try {
       setIsVapiStarting(true);
-      console.log("Attempting to start Vapi call...");
+      console.log("🚀 Attempting to start Vapi call...");
 
       await vapi.start(VAPI_ASSISTANT_ID);
-      console.log("Vapi start method called successfully");
+      console.log("✅ Vapi start method called successfully");
     } catch (error) {
-      console.error("Failed to start Vapi:", error);
+      console.error("❌ Failed to start Vapi:", error);
       setIsVapiStarting(false);
+      vapiStartAttemptedRef.current = false; // Reset so user can try again
+
+      // Show user-friendly error message
+      if (
+        error.message?.includes("429") ||
+        error.message?.includes("Too Many Requests")
+      ) {
+        alert(
+          "Too many requests to voice service. Please wait a moment and try the manual start button."
+        );
+      } else if (
+        error.message?.includes("CORS") ||
+        error.message?.includes("fetch")
+      ) {
+        alert(
+          "Voice service connection failed. You can still type your answers or try the manual start button."
+        );
+      }
     }
   };
 
@@ -399,7 +432,12 @@ Welcome to your interview! We'll be going through ${
       setIsInterviewActive(true);
       setStartTime(new Date());
       setQuestionStartTime(new Date());
-      // Vapi will start automatically due to the useEffect above
+
+      // Reset the attempt flag so Vapi can start
+      vapiStartAttemptedRef.current = false;
+
+      // The useEffect will handle starting Vapi automatically
+      console.log("🚀 Interview started - Vapi will start automatically");
     }
   };
 
@@ -616,6 +654,8 @@ Welcome to your interview! We'll be going through ${
   // Debug function to manually start Vapi if needed
   const manuallyStartVapi = () => {
     if (vapi && !isVapiActive && !isVapiStarting) {
+      console.log("🔧 Manual Vapi start requested");
+      vapiStartAttemptedRef.current = false; // Reset attempt flag
       startVapiCall();
     }
   };
