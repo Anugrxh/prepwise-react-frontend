@@ -7,8 +7,15 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  const isInterviewPage = location.pathname.includes('/interview/') && !location.pathname.includes('/setup');
 
   const handleLogout = async () => {
+    if (isInterviewPage) {
+      if (!confirm("Are you sure you want to logout during an interview? All progress will be lost.")) {
+        return;
+      }
+    }
     await logout();
     navigate("/login");
   };

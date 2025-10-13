@@ -66,9 +66,18 @@ const Profile = () => {
     if (activeTab === "history") {
       loadInterviewHistory();
     } else if (activeTab === "analytics") {
-      loadAnalytics();
+      // Check if we're coming from an interview completion (force refresh)
+      const fromInterview = searchParams.get('from') === 'interview';
+      loadAnalytics(fromInterview);
+      
+      // Clear the 'from' parameter after loading
+      if (fromInterview) {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('from');
+        setSearchParams(newParams, { replace: true });
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, searchParams]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -101,12 +110,12 @@ const Profile = () => {
     }
   }, [fetchInterviewHistory]);
 
-  const loadAnalytics = useCallback(async () => {
+  const loadAnalytics = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
-      console.log('[Profile] Loading analytics...');
+      console.log('[Profile] Loading analytics...', forceRefresh ? '(force refresh)' : '');
       
-      const result = await fetchProfileAnalytics();
+      const result = await fetchProfileAnalytics(forceRefresh);
 
       let analyticsData = {
         totalInterviews: 0,

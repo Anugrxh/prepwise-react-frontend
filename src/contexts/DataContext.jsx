@@ -147,9 +147,11 @@ export const DataProvider = ({ children }) => {
   }, [invalidateCache]);
 
   const invalidateAnalyticsData = useCallback(() => {
+    // Invalidate both user-specific and general analytics cache
     invalidateCache('analytics.*');
-    console.log('[DataContext] Invalidated analytics data cache');
-  }, [invalidateCache]);
+    invalidateCache(`user-${user?.id}-analytics.*`);
+    console.log('[DataContext] Invalidated analytics data cache for user:', user?.id);
+  }, [invalidateCache, user?.id]);
 
   const invalidateAllData = useCallback(() => {
     clearCache();

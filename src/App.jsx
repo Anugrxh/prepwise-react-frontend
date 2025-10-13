@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 import { InterviewProvider } from "./contexts/InterviewContext.jsx";
@@ -22,15 +23,14 @@ import Results from "./pages/Results.jsx";
 import Profile from "./pages/Profile.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  const isInterviewPage = location.pathname.includes('/interview/') && !location.pathname.includes('/setup');
+
   return (
-    <AuthProvider>
-      <InterviewProvider>
-        <DataProvider>
-          <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Navbar />
-            <main className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50">
+      {!isInterviewPage && <Navbar />}
+      <main className={`container mx-auto px-4 ${isInterviewPage ? 'py-4' : 'py-8'}`}>
               <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -81,11 +81,21 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
-            <Toast />
-            <ApiDebugPanel />
-            <CacheManager />
-          </div>
-        </Router>
+      <Toast />
+      <ApiDebugPanel />
+      <CacheManager />
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <InterviewProvider>
+        <DataProvider>
+          <Router>
+            <AppContent />
+          </Router>
         </DataProvider>
       </InterviewProvider>
     </AuthProvider>
