@@ -556,7 +556,7 @@ const Dashboard = () => {
 
       {/* Recent Interviews */}
       <Card animate delay={0.6}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <h2 className="text-xl font-semibold text-white">
             Recent Interviews
           </h2>
@@ -626,13 +626,13 @@ const Dashboard = () => {
               {stats.recentInterviews.map((interview, index) => (
                 <motion.div
                   key={interview._id}
-                  className="flex items-center justify-between p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-white/20 rounded-lg hover:bg-white/10 transition-all duration-200 hover:shadow-xl backdrop-blur-sm gap-4"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-2">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       <h3 className="text-sm font-medium text-white truncate">
                         {interview.techStack?.join(", ") || "General Interview"}
                       </h3>
@@ -652,34 +652,34 @@ const Dashboard = () => {
                           </span>
                         )}
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-300">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-300">
                       <div className="flex items-center space-x-1">
-                        <Target className="w-3 h-3" />
-                        <span>
+                        <Target className="w-3 h-3 flex-shrink-0" />
+                        <span className="whitespace-nowrap">
                           {interview.hardnessLevel} •{" "}
                           {interview.experienceLevel}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{interview.numberOfQuestions} questions</span>
+                        <Calendar className="w-3 h-3 flex-shrink-0" />
+                        <span className="whitespace-nowrap">{interview.numberOfQuestions} questions</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatDate(interview.createdAt)}</span>
+                        <Clock className="w-3 h-3 flex-shrink-0" />
+                        <span className="whitespace-nowrap">{formatDate(interview.createdAt)}</span>
                       </div>
                       {interview.status === "completed" &&
                         interview.completedAt && (
                           <div className="flex items-center space-x-1">
-                            <Award className="w-3 h-3" />
-                            <span>
+                            <Award className="w-3 h-3 flex-shrink-0" />
+                            <span className="whitespace-nowrap">
                               Completed {formatDate(interview.completedAt)}
                             </span>
                           </div>
                         )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 ml-4">
+                  <div className="flex items-center space-x-2 sm:ml-4 self-start sm:self-center">
                     {interview.status === "completed" && (
                       <Link to={`/results/${interview._id}`}>
                         <Button variant="outline" size="sm">
@@ -708,13 +708,13 @@ const Dashboard = () => {
 
             {/* Pagination */}
             {totalInterviews > interviewsPerPage && (
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-                <div className="text-sm text-white-500">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 pt-4 border-t border-white/20 gap-4">
+                <div className="text-sm text-gray-300 text-center sm:text-left">
                   Showing {(currentPage - 1) * interviewsPerPage + 1} to{" "}
                   {Math.min(currentPage * interviewsPerPage, totalInterviews)}{" "}
                   of {totalInterviews} interviews
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-center space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -725,7 +725,7 @@ const Dashboard = () => {
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-gray-300">
+                  <span className="text-sm text-gray-300 whitespace-nowrap">
                     Page {currentPage} of{" "}
                     {Math.ceil(totalInterviews / interviewsPerPage)}
                   </span>
