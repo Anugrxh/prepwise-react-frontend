@@ -80,9 +80,41 @@ const Results = () => {
   };
 
   const getGradeColor = (grade) => {
-    if (["A+", "A", "A-"].includes(grade)) return "text-success-400";
-    if (["B+", "B", "B-"].includes(grade)) return "text-warning-400";
-    return "text-danger-400";
+    // Backend API grade colors - match performance levels
+    if (["A+", "A"].includes(grade)) return "text-success-400"; // Excellent (90%+)
+    if (["B+", "B"].includes(grade)) return "text-blue-400"; // Very Good (80-89%)
+    if (["C+", "C"].includes(grade)) return "text-warning-400"; // Good (70-79%)
+    if (grade === "D") return "text-orange-400"; // Average (60-69%)
+    return "text-danger-400"; // Poor (Below 60%)
+  };
+
+  const calculateGrade = (score) => {
+    // Backend API grading system - exact match
+    if (score >= 95) return "A+";
+    if (score >= 90) return "A";
+    if (score >= 85) return "B+";
+    if (score >= 80) return "B";
+    if (score >= 75) return "C+";
+    if (score >= 70) return "C";
+    if (score >= 60) return "D";
+    return "F";
+  };
+
+  const isPassed = () => {
+    // Backend API uses 70% as passing threshold
+    const calculated = results.overallScore >= 70;
+    console.log("Calculating passed status from score:", results.overallScore, ">=", 70, "=", calculated);
+    
+    // If API provides passed status, compare with our calculation
+    if (results.passed !== undefined) {
+      if (results.passed !== calculated) {
+        console.log("API passed status disagrees with score-based calculation. API says:", results.passed, "but score", results.overallScore, "should be:", calculated);
+        console.log("Using API value:", results.passed);
+      }
+      return results.passed; // Trust the API
+    }
+    
+    return calculated;
   };
 
   const formatDuration = (seconds) => {
@@ -182,6 +214,15 @@ const Results = () => {
     );
   }
 
+  // Debug logging
+  console.log("Results data:", {
+    overallScore: results.overallScore,
+    passed: results.passed,
+    passedType: typeof results.passed,
+    calculatedPassed: results.overallScore >= 60,
+    shouldPass: (results.passed !== undefined ? results.passed : results.overallScore >= 60)
+  });
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
@@ -194,9 +235,14 @@ const Results = () => {
         <h1 className="text-4xl font-bold text-white mb-2">
           Interview Results
         </h1>
-        <p className="text-lg text-gray-300">
+        <p className="text-lg text-gray-300 mb-2">
           Here's how you performed in your interview
         </p>
+        <div className="inline-flex items-center px-4 py-2 bg-violet-500/10 backdrop-blur-sm border border-violet-500/30 rounded-full">
+          <span className="text-sm text-violet-300">
+            <strong>Passing Score:</strong> 70% or higher • <strong>Grade A:</strong> 90%+ • <strong>Excellent:</strong> 95%+
+          </span>
+        </div>
       </motion.div>
 
       {/* Overall Score */}
@@ -212,7 +258,7 @@ const Results = () => {
             transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
           >
             <div className="flex items-center justify-center mb-4">
-              {results.passed ? (
+              {isPassed() ? (
                 <Trophy className="w-16 h-16 text-yellow-500 mr-4" />
               ) : (
                 <Target className="w-16 h-16 text-gray-400 mr-4" />
@@ -228,10 +274,10 @@ const Results = () => {
 
             <div
               className={`text-3xl font-semibold mb-4 ${getGradeColor(
-                results.grade
+                results.grade || calculateGrade(results.overallScore)
               )}`}
             >
-              Grade: {results.grade}
+              Grade: {results.grade || calculateGrade(results.overallScore)}
             </div>
 
             <Badge
@@ -239,7 +285,7 @@ const Results = () => {
               size="lg"
               className="text-lg px-6 py-2"
             >
-              {results.passed ? (
+              {isPassed() ? (
                 <>
                   <CheckCircle className="w-5 h-5 mr-2" /> Passed
                 </>
@@ -278,7 +324,10 @@ const Results = () => {
               </div>
               <p className="text-sm text-gray-300 mb-1">Completion</p>
               <p className="text-xl font-bold text-white">
-                {results.completionPercentage || 0}%
+                {results.completionPercentage || 
+                 (results.questionsAnswered && results.totalQuestions 
+                   ? Math.round((results.questionsAnswered / results.totalQuestions) * 100)
+                   : 0)}%
               </p>
             </motion.div>
 
@@ -306,7 +355,7 @@ const Results = () => {
               <div
                 className={`w-12 h-12 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg flex items-center justify-center mx-auto mb-2`}
               >
-                {results.passed ? (
+                {isPassed() ? (
                   <Award className="w-6 h-6 text-emerald-400" />
                 ) : (
                   <XCircle className="w-6 h-6 text-red-400" />
@@ -315,10 +364,10 @@ const Results = () => {
               <p className="text-sm text-gray-300 mb-1">Status</p>
               <p
                 className={`text-xl font-bold ${
-                  results.passed ? "text-emerald-400" : "text-red-400"
+                  isPassed() ? "text-emerald-400" : "text-red-400"
                 }`}
               >
-                {results.passed ? "Passed" : "Failed"}
+                {isPassed() ? "Passed" : "Failed"}
               </p>
             </motion.div>
           </div>
