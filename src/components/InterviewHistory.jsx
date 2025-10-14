@@ -187,7 +187,7 @@ const InterviewHistory = () => {
             </div>
 
             <div className="flex items-center space-x-2">
-              <select
+              {/* <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
                   const [field, order] = e.target.value.split("-");
@@ -200,7 +200,7 @@ const InterviewHistory = () => {
                 <option value="createdAt-asc">Oldest First</option>
                 <option value="completedAt-desc">Recently Completed</option>
                 <option value="numberOfQuestions-desc">Most Questions</option>
-              </select>
+              </select> */}
             </div>
           </div>
 
