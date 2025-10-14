@@ -8,8 +8,8 @@ import Alert from "../components/Alert.jsx";
 import WebcamCapture from "../components/WebcamCapture.jsx";
 
 // --- Vapi Configuration ---
-const VAPI_PUBLIC_KEY = "ba9925cd-79ac-4d55-bf87-f28c7ccdd926";
-const VAPI_ASSISTANT_ID = "ba3b173d-71eb-464e-a3d6-8793ad947274";
+const VAPI_PUBLIC_KEY = "32737436-6ff6-4c55-af8e-72157ef94a55";
+const VAPI_ASSISTANT_ID = "0292c649-7d1e-4ebb-9044-72f80b123067";
 
 const Interview = () => {
   const { id } = useParams();
