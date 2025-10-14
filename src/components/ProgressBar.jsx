@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const ProgressBar = ({
+const ProgressBar = React.memo(({
   value = 0,
   max = 100,
   size = 'md',
@@ -65,6 +65,8 @@ const ProgressBar = ({
       </div>
     </div>
   );
-};
+});
+
+ProgressBar.displayName = 'ProgressBar';
 
 export default ProgressBar;

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -14,14 +14,24 @@ import Navbar from "./components/Navbar.jsx";
 import Toast from "./components/Toast.jsx";
 import ApiDebugPanel from "./components/ApiDebugPanel.jsx";
 import CacheManager from "./components/CacheManager.jsx";
-import Login from "./pages/Login.jsx";
-import Register from "./pages/Register.jsx";
-import Dashboard from "./pages/Dashboard.jsx";
-import InterviewSetup from "./pages/InterviewSetup.jsx";
-import Interview from "./pages/Interview.jsx";
-import Results from "./pages/Results.jsx";
-import Profile from "./pages/Profile.jsx";
-import NotFound from "./pages/NotFound.jsx";
+import LoadingSpinner from "./components/LoadingSpinner.jsx";
+
+// Lazy load pages for better performance
+const Login = React.lazy(() => import("./pages/Login.jsx"));
+const Register = React.lazy(() => import("./pages/Register.jsx"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard.jsx"));
+const InterviewSetup = React.lazy(() => import("./pages/InterviewSetup.jsx"));
+const Interview = React.lazy(() => import("./pages/Interview.jsx"));
+const Results = React.lazy(() => import("./pages/Results.jsx"));
+const Profile = React.lazy(() => import("./pages/Profile.jsx"));
+const NotFound = React.lazy(() => import("./pages/NotFound.jsx"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-64">
+    <LoadingSpinner size="lg" />
+  </div>
+);
 
 function AppContent() {
   const location = useLocation();
@@ -36,56 +46,58 @@ function AppContent() {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 aurora-bg">
       {!isInterviewPage && <Navbar />}
       <main className={`container mx-auto px-4 ${isInterviewPage ? 'py-4' : 'py-8'}`}>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route
-                  path="/"
-                  element={<Navigate to="/dashboard" replace />}
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/interview/setup"
-                  element={
-                    <ProtectedRoute>
-                      <InterviewSetup />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/interview/:id"
-                  element={
-                    <ProtectedRoute>
-                      <Interview />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/results/:id"
-                  element={
-                    <ProtectedRoute>
-                      <Results />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/"
+              element={<Navigate to="/dashboard" replace />}
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview/setup"
+              element={
+                <ProtectedRoute>
+                  <InterviewSetup />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/interview/:id"
+              element={
+                <ProtectedRoute>
+                  <Interview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/results/:id"
+              element={
+                <ProtectedRoute>
+                  <Results />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </main>
       <Toast />
       <ApiDebugPanel />
       <CacheManager />

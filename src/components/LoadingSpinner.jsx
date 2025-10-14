@@ -1,6 +1,6 @@
 import React from "react";
 
-const LoadingSpinner = ({ size = "md", className = "" }) => {
+const LoadingSpinner = React.memo(({ size = "md", className = "" }) => {
   const sizeClasses = {
     sm: "h-4 w-4",
     md: "h-8 w-8",
@@ -11,6 +11,8 @@ const LoadingSpinner = ({ size = "md", className = "" }) => {
   return (
     <div className={`loading-spinner ${sizeClasses[size]} ${className}`}></div>
   );
-};
+});
+
+LoadingSpinner.displayName = 'LoadingSpinner';
 
 export default LoadingSpinner;

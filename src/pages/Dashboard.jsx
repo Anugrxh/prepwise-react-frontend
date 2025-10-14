@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -175,7 +175,7 @@ const Dashboard = () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [loadDashboardData, currentPage, lastRefresh]);
 
-  const calculateStreak = (interviews) => {
+  const calculateStreak = useCallback((interviews) => {
     // Simple streak calculation - consecutive days with interviews
     const sortedInterviews = interviews
       .filter((interview) => interview.status === "completed")
@@ -210,9 +210,9 @@ const Dashboard = () => {
     }
 
     return streak;
-  };
+  }, []);
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = useCallback((status) => {
     const statusConfig = {
       generated: { variant: "info", text: "Generated" },
       in_progress: { variant: "warning", text: "In Progress" },
@@ -225,9 +225,9 @@ const Dashboard = () => {
       text: status,
     };
     return <Badge variant={config.variant}>{config.text}</Badge>;
-  };
+  }, []);
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -235,15 +235,15 @@ const Dashboard = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
+  }, []);
 
-  const getScoreColor = (score) => {
+  const getScoreColor = useCallback((score) => {
     if (score >= 80) return "success";
     if (score >= 60) return "warning";
     return "danger";
-  };
+  }, []);
 
-  const StatCard = ({
+  const StatCard = useMemo(() => React.memo(({
     title,
     value,
     icon: Icon,
@@ -271,7 +271,7 @@ const Dashboard = () => {
         </div>
       )}
     </Card>
-  );
+  )), []);
 
   if (loadingStats) {
     return (

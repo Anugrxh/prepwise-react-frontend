@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const Badge = ({
+const Badge = React.memo(({
   children,
   variant = 'primary',
   size = 'md',
@@ -48,6 +48,8 @@ const Badge = ({
       {children}
     </Component>
   );
-};
+});
+
+Badge.displayName = 'Badge';
 
 export default Badge;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const Card = ({ 
+const Card = React.memo(({ 
   children, 
   className = '', 
   hover = false, 
@@ -46,6 +46,8 @@ const Card = ({
       {children}
     </Component>
   );
-};
+});
+
+Card.displayName = 'Card';
 
 export default Card;

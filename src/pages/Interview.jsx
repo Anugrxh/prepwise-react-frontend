@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Vapi from "@vapi-ai/web";
 import { useInterview } from "../contexts/InterviewContext.jsx";
@@ -617,16 +617,16 @@ Welcome to your interview! We'll be going through ${
     }
   };
 
-  const getAnsweredQuestionsCount = () => {
+  const getAnsweredQuestionsCount = useCallback(() => {
     return Object.values(answers).filter(
       (answer) =>
         answer.answerText &&
         answer.answerText.trim().length >= 10 &&
         answer.answerText.trim().length <= 5000
     ).length;
-  };
+  }, [answers]);
 
-  const getCurrentAnswer = () => {
+  const getCurrentAnswer = useCallback(() => {
     const currentQuestion = currentInterview?.questions[currentQuestionIndex];
     if (!currentQuestion) return "";
 
@@ -649,16 +649,16 @@ Welcome to your interview! We'll be going through ${
       `📝 Showing saved answer for question ${currentQuestion.questionNumber}: "${savedAnswer}"`
     );
     return savedAnswer;
-  };
+  }, [currentInterview, currentQuestionIndex, answers, currentTranscript]);
 
   // Debug function to manually start Vapi if needed
-  const manuallyStartVapi = () => {
+  const manuallyStartVapi = useCallback(() => {
     if (vapi && !isVapiActive && !isVapiStarting) {
       console.log("🔧 Manual Vapi start requested");
       vapiStartAttemptedRef.current = false; // Reset attempt flag
       startVapiCall();
     }
-  };
+  }, [vapi, isVapiActive, isVapiStarting]);
 
   // Render logic
   if (loading && !currentInterview) {
