@@ -39,7 +39,7 @@ const Navbar = () => {
             <div className="w-8 h-8 bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl flex items-center justify-center shadow-lg border border-primary-500/30">
               <span className="text-white font-bold text-lg">P</span>
             </div>
-            <span className="text-xl font-bold text-white">Prepwise</span>
+            <span className="text-xl font-bold text-white">PrepWise</span>
           </Link>
 
           {/* Desktop Navigation */}
