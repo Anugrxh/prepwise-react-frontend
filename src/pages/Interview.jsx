@@ -948,6 +948,31 @@ Welcome to your interview! We'll be going through ${
         <div className="lg:col-span-1 space-y-8">
           <div className="card">
             <h3 className="text-lg font-semibold text-white mb-4">
+              Video Recording (Optional)
+            </h3>
+            <p className="text-sm text-gray-300 mb-4">
+              Enable your camera for optional facial analysis to help improve
+              your presentation skills.
+            </p>
+            <div className="mb-4">
+              <button
+                onClick={() => setWebcamEnabled(!webcamEnabled)}
+                className={`btn ${
+                  webcamEnabled ? "btn-success" : "btn-primary"
+                } w-full`}
+              >
+                {webcamEnabled ? "Stop Recording" : "Start Recording"}
+              </button>
+            </div>
+            <WebcamCapture
+              onCapture={handleWebcamCapture}
+              isRecording={webcamEnabled}
+              className="w-full"
+            />
+          </div>
+
+          <div className="card">
+            <h3 className="text-lg font-semibold text-white mb-4">
               AI Assistant Status
             </h3>
             <div className="flex items-center space-x-3 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg mb-4">
@@ -987,22 +1012,6 @@ Welcome to your interview! We'll be going through ${
             </div>
 
             {/* Transcript Debug Info - Remove in production */}
-            {process.env.NODE_ENV === "development" && (
-              <div className="mt-4 p-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg text-xs">
-                <p className="text-white">
-                  <strong>Debug Info:</strong>
-                </p>
-                <p className="text-gray-300">
-                  Current transcript: "{currentTranscript}"
-                </p>
-                <p className="text-gray-300">
-                  Is transcribing: {isTranscribing ? "Yes" : "No"}
-                </p>
-                <p className="text-gray-300">
-                  Saved answer length: {getCurrentAnswer().length}
-                </p>
-              </div>
-            )}
 
             {/* Debug buttons - can be removed in production */}
             {!isVapiActive && !isVapiStarting && interviewStarted && (
@@ -1076,34 +1085,6 @@ Welcome to your interview! We'll be going through ${
                 )}
               </div>
             )}
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold text-white mb-4">
-              Video Recording (Optional)
-            </h3>
-            <p className="text-sm text-gray-300 mb-4">
-              Enable your camera for optional facial analysis to help improve
-              your presentation skills.
-            </p>
-            <div className="mb-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={webcamEnabled}
-                  onChange={(e) => setWebcamEnabled(e.target.checked)}
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-300">
-                  Enable camera recording
-                </span>
-              </label>
-            </div>
-            <WebcamCapture
-              onCapture={handleWebcamCapture}
-              isRecording={webcamEnabled}
-              className="w-full"
-            />
           </div>
         </div>
       </div>
