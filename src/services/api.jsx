@@ -68,6 +68,67 @@ export const answerAPI = {
   update: (id, data) => api.put(`/answers/${id}`, data),
   delete: (id) => api.delete(`/answers/${id}`),
   getStats: (interviewId) => api.get(`/answers/stats/${interviewId}`),
+  updateFacialAnalysis: (interviewId, facialData) => api.patch(`/answers/interview/${interviewId}/facial-analysis`, facialData),
+};
+
+// Facial Analysis API
+export const facialAnalysisAPI = {
+  analyze: (videoFile) => {
+    console.log('📤 Sending video for facial analysis (Postman format):', {
+      name: videoFile.name,
+      size: videoFile.size,
+      type: videoFile.type
+    });
+    
+    // Create FormData exactly like Postman
+    const formData = new FormData();
+    
+    // Send original file format (WebM is fine, Django can handle it)
+    console.log('📤 Sending original video file to Django:', {
+      name: videoFile.name,
+      size: videoFile.size,
+      type: videoFile.type,
+      isOriginalFormat: true
+    });
+    
+    // Add original file to FormData
+    formData.append('video', videoFile);
+    
+    // Send exactly like Django test script (with trailing slash)
+    return axios.post('http://localhost:8000/api/facial-analysis/', formData, {
+      timeout: 60000,
+      onUploadProgress: (progressEvent) => {
+        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        console.log('📤 Upload progress:', percentCompleted + '%');
+      }
+    }).then(response => {
+      console.log('📥 Facial analysis SUCCESS:', response.data);
+      return response;
+    }).catch(error => {
+      console.error('📥 Facial analysis FAILED:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw error;
+    });
+  },
+  
+  // Get facial analysis data for an interview
+  getByInterview: (interviewId) => {
+    console.log('📥 Fetching facial analysis for interview:', interviewId);
+    return api.get(`/facial-analysis/interview/${interviewId}`).then(response => {
+      console.log('📥 Facial analysis data received:', response.data);
+      return response;
+    }).catch(error => {
+      console.error('📥 Failed to fetch facial analysis:', {
+        status: error.response?.status,
+        message: error.message
+      });
+      throw error;
+    });
+  },
 };
 
 // Results API

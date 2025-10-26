@@ -6,6 +6,7 @@ import { useData } from "../contexts/DataContext.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Alert from "../components/Alert.jsx";
 import WebcamCapture from "../components/WebcamCapture.jsx";
+import { facialAnalysisAPI, answerAPI } from "../services/api.jsx";
 
 // --- Vapi Configuration ---
 const VAPI_PUBLIC_KEY = "32737436-6ff6-4c55-af8e-72157ef94a55";
@@ -37,6 +38,9 @@ const Interview = () => {
   const [webcamEnabled, setWebcamEnabled] = useState(false);
   const [facialAnalysisData, setFacialAnalysisData] = useState(null);
   const [isInterviewActive, setIsInterviewActive] = useState(false);
+  const [recordedVideo, setRecordedVideo] = useState(null);
+  const [isProcessingFacialAnalysis, setIsProcessingFacialAnalysis] =
+    useState(false);
   const textareaRef = useRef(null);
 
   // --- Vapi State ---
@@ -516,8 +520,140 @@ Welcome to your interview! We'll be going through ${
     });
   };
 
+  const handleVideoRecorded = (videoFile) => {
+    console.log("Video recorded:", videoFile);
+    if (videoFile && videoFile.size > 0) {
+      setRecordedVideo(videoFile);
+      console.log(
+        "✅ Video file saved successfully:",
+        videoFile.name,
+        "Size:",
+        videoFile.size,
+        "bytes"
+      );
+
+      // Don't process immediately - save for interview submission
+      console.log("🎥 Video saved for processing during interview submission");
+    } else {
+      console.log("⚠️ No video data recorded or empty file");
+    }
+  };
+
+  const processFacialAnalysis = async (videoFile) => {
+    if (!videoFile) {
+      console.error("🎥 No video file provided for facial analysis");
+      return null;
+    }
+
+    if (videoFile.size === 0) {
+      console.error("🎥 Video file is empty");
+      return null;
+    }
+
+    try {
+      setIsProcessingFacialAnalysis(true);
+      console.log("🎥 Starting facial analysis process...");
+      console.log("🎥 Video file details:", {
+        name: videoFile.name,
+        size: videoFile.size,
+        type: videoFile.type,
+        lastModified: videoFile.lastModified,
+      });
+
+      // Simple validation
+      if (videoFile.size < 1000) {
+        throw new Error("Video file too small to be valid");
+      }
+
+      console.log("🎥 Sending video file:", {
+        name: videoFile.name,
+        size: videoFile.size,
+        type: videoFile.type,
+        sizeKB: Math.round(videoFile.size / 1024),
+      });
+
+      // Test if Django server is reachable
+      try {
+        const healthCheck = await fetch("http://localhost:8000/", {
+          method: "GET",
+        });
+        console.log("🎥 Django server health check:", healthCheck.status);
+      } catch (healthError) {
+        console.error("🎥 Django server not reachable:", healthError);
+        throw new Error("Facial analysis server is not available");
+      }
+
+      console.log("🎥 Sending video to facial analysis API...");
+      const response = await facialAnalysisAPI.analyze(videoFile);
+
+      if (!response.data || !response.data.facialAnalysisResult) {
+        throw new Error("Invalid response from facial analysis API");
+      }
+
+      const facialResult = response.data.facialAnalysisResult;
+      console.log("🎥 Facial analysis result received:", facialResult);
+
+      // Update all answers with facial analysis
+      console.log("🎥 Updating database with facial analysis...");
+      const updateResponse = await answerAPI.updateFacialAnalysis(
+        currentInterview._id,
+        {
+          facialAnalysisResult: facialResult,
+        }
+      );
+
+      console.log("🎥 Database update response:", updateResponse.data);
+      console.log("✅ Facial analysis completed successfully");
+      return facialResult;
+    } catch (error) {
+      console.error("❌ Facial analysis failed:", {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+
+      // Show user-friendly error message
+      if (error.message.includes("server is not available")) {
+        console.error("🎥 Facial analysis server is offline");
+      } else if (error.response?.status === 400) {
+        console.error("🎥 Invalid video format or corrupted file");
+      } else if (error.response?.status === 500) {
+        console.error("🎥 Server error during facial analysis");
+      } else {
+        console.error("🎥 Unknown error during facial analysis");
+      }
+
+      return null;
+    } finally {
+      setIsProcessingFacialAnalysis(false);
+    }
+  };
+
   const handleSubmitAllAnswers = async () => {
     setIsSubmitting(true);
+
+    // Stop video recording if active and wait for video to be processed
+    if (webcamEnabled) {
+      console.log("🎥 Stopping video recording - Interview submitted");
+      console.log("🎥 Current recorded video state:", {
+        hasVideo: !!recordedVideo,
+        videoSize: recordedVideo?.size,
+        videoName: recordedVideo?.name,
+      });
+
+      setWebcamEnabled(false);
+
+      // Wait longer for video processing to complete
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("🎥 Video processing wait completed");
+
+      // Check video state after waiting
+      console.log("🎥 Video state after wait:", {
+        hasVideo: !!recordedVideo,
+        videoSize: recordedVideo?.size,
+        videoName: recordedVideo?.name,
+      });
+    }
 
     // Stop Vapi call on submission
     if (vapi && isVapiActive) {
@@ -607,6 +743,23 @@ Welcome to your interview! We'll be going through ${
         invalidateInterviewData();
         invalidateAnalyticsData();
         console.log("✅ Interview completed - cache invalidated");
+
+        // Process facial analysis in background (non-blocking)
+        console.log("🎥 Checking for recorded video...", {
+          hasRecordedVideo: !!recordedVideo,
+          videoSize: recordedVideo?.size,
+          videoName: recordedVideo?.name,
+        });
+
+        if (recordedVideo) {
+          console.log("🎥 Processing facial analysis in background...");
+          processFacialAnalysis(recordedVideo).catch((error) => {
+            console.error("Background facial analysis failed:", error);
+          });
+        } else {
+          console.log("🎥 No recorded video found - skipping facial analysis");
+        }
+
         navigate(`/results/${currentInterview._id}`);
       }
     } catch (error) {
@@ -966,9 +1119,220 @@ Welcome to your interview! We'll be going through ${
             </div>
             <WebcamCapture
               onCapture={handleWebcamCapture}
+              onVideoRecorded={handleVideoRecorded}
               isRecording={webcamEnabled}
               className="w-full"
             />
+
+            {/* Recording Status */}
+            {webcamEnabled && (
+              <div className="mt-4 p-3 bg-red-500/10 backdrop-blur-sm border border-red-500/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-red-200">
+                    🎥 Recording in progress...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Facial Analysis Status */}
+            {isProcessingFacialAnalysis && (
+              <div className="mt-4 p-3 bg-blue-500/10 backdrop-blur-sm border border-blue-500/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm text-blue-200">
+                    🧠 Processing facial analysis...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {recordedVideo && !isProcessingFacialAnalysis && (
+              <div className="mt-4 p-3 bg-green-500/10 backdrop-blur-sm border border-green-500/30 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 bg-green-400 rounded-full"></div>
+                  <div className="text-sm text-green-200">
+                    <div>✅ Video recorded successfully</div>
+                    <div className="text-xs text-green-300 mt-1">
+                      Size: {Math.round(recordedVideo.size / 1024)} KB | Type:{" "}
+                      {recordedVideo.type} | Name: {recordedVideo.name}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Debug Info - Remove in production */}
+            {process.env.NODE_ENV === "development" && (
+              <div className="mt-4 p-3 bg-gray-500/10 backdrop-blur-sm border border-gray-500/30 rounded-lg text-xs">
+                <div className="text-white mb-2">
+                  <strong>🔧 Debug Info:</strong>
+                </div>
+                <div className="text-gray-300 space-y-1">
+                  <div>Recording: {webcamEnabled ? "ON" : "OFF"}</div>
+                  <div>Video File: {recordedVideo ? "YES" : "NO"}</div>
+                  <div>
+                    Processing: {isProcessingFacialAnalysis ? "YES" : "NO"}
+                  </div>
+                  {recordedVideo && (
+                    <div>File Size: {recordedVideo.size} bytes</div>
+                  )}
+                </div>
+                <div className="mt-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      console.log("🔧 Current video state:", {
+                        hasVideo: !!recordedVideo,
+                        videoSize: recordedVideo?.size,
+                        videoName: recordedVideo?.name,
+                        isRecording: webcamEnabled,
+                      });
+                      alert(
+                        `Video State:\nHas Video: ${!!recordedVideo}\nRecording: ${webcamEnabled}\nSize: ${
+                          recordedVideo?.size || "N/A"
+                        }`
+                      );
+                    }}
+                    className="btn btn-sm btn-outline w-full text-xs"
+                  >
+                    🔍 Check Video State
+                  </button>
+                  <button
+                    onClick={async () => {
+                      console.log("🔧 Testing Django server connection...");
+                      try {
+                        const response = await fetch("http://localhost:8000/");
+                        console.log(
+                          "🔧 Django server response:",
+                          response.status
+                        );
+                        alert(
+                          `Django server: ${
+                            response.ok ? "ONLINE" : "OFFLINE"
+                          } (${response.status})`
+                        );
+                      } catch (error) {
+                        console.error("🔧 Django server test failed:", error);
+                        alert("Django server: OFFLINE - " + error.message);
+                      }
+                    }}
+                    className="btn btn-sm btn-outline w-full text-xs"
+                  >
+                    🌐 Test Django Server
+                  </button>
+                  <button
+                    onClick={async () => {
+                      console.log("🔧 Testing Django API expectations...");
+                      try {
+                        // Create a minimal test file
+                        const testData = new Uint8Array([
+                          0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69,
+                          0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00, 0x69, 0x73,
+                          0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32, 0x61, 0x76, 0x63,
+                          0x31, 0x6d, 0x70, 0x34, 0x31,
+                        ]);
+                        const testFile = new File([testData], "test.mp4", {
+                          type: "video/mp4",
+                        });
+
+                        // Test different field names and approaches
+                        const tests = [
+                          { name: "video", file: testFile, headers: {} },
+                          { name: "file", file: testFile, headers: {} },
+                          { name: "video_file", file: testFile, headers: {} },
+                          {
+                            name: "video",
+                            file: testFile,
+                            headers: { "Content-Type": "multipart/form-data" },
+                          },
+                        ];
+
+                        for (const test of tests) {
+                          console.log(`🔧 Testing field name: "${test.name}"`);
+
+                          const formData = new FormData();
+                          formData.append(test.name, test.file);
+
+                          const response = await fetch(
+                            "http://localhost:8000/api/facial-analysis/",
+                            {
+                              method: "POST",
+                              body: formData,
+                              headers: test.headers,
+                            }
+                          );
+
+                          const result = await response.text();
+                          console.log(
+                            `🔧 Field "${test.name}": ${response.status} - ${result}`
+                          );
+
+                          if (response.ok) {
+                            alert(`SUCCESS! Use field name: "${test.name}"`);
+                            return;
+                          }
+                        }
+
+                        alert("All tests failed. Check console for details.");
+                      } catch (error) {
+                        console.error("🔧 API test failed:", error);
+                        alert("API test failed: " + error.message);
+                      }
+                    }}
+                    className="btn btn-sm btn-outline w-full text-xs"
+                  >
+                    🧪 Test Django API
+                  </button>
+                  {recordedVideo && (
+                    <>
+                      <button
+                        onClick={async () => {
+                          console.log("🔧 Analyzing recorded video file...");
+
+                          // Read first few bytes to check file signature
+                          const arrayBuffer = await recordedVideo.arrayBuffer();
+                          const uint8Array = new Uint8Array(
+                            arrayBuffer.slice(0, 20)
+                          );
+                          const header = Array.from(uint8Array)
+                            .map((b) => b.toString(16).padStart(2, "0"))
+                            .join(" ");
+
+                          console.log("🔧 File analysis:", {
+                            name: recordedVideo.name,
+                            size: recordedVideo.size,
+                            type: recordedVideo.type,
+                            header: header,
+                            isWebM: header.includes("1a 45 df a3"), // WebM signature
+                            isMP4: header.includes("66 74 79 70"), // MP4 signature
+                          });
+
+                          alert(
+                            `File: ${recordedVideo.name}\nSize: ${recordedVideo.size} bytes\nType: ${recordedVideo.type}\nHeader: ${header}`
+                          );
+                        }}
+                        className="btn btn-sm btn-outline w-full text-xs"
+                      >
+                        🔍 Analyze File
+                      </button>
+                      <button
+                        onClick={() => {
+                          console.log(
+                            "🔧 Manual facial analysis test triggered"
+                          );
+                          processFacialAnalysis(recordedVideo);
+                        }}
+                        disabled={isProcessingFacialAnalysis}
+                        className="btn btn-sm btn-outline w-full text-xs"
+                      >
+                        🧪 Test Facial Analysis
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="card">

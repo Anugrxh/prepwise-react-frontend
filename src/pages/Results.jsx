@@ -17,6 +17,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useInterview } from "../contexts/InterviewContext.jsx";
+import { facialAnalysisAPI } from "../services/api.jsx";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import Card from "../components/Card.jsx";
 import Button from "../components/Button.jsx";
@@ -38,6 +39,8 @@ const Results = () => {
   } = useInterview();
 
   const [isGeneratingResults, setIsGeneratingResults] = useState(false);
+  const [facialAnalysisData, setFacialAnalysisData] = useState(null);
+  const [loadingFacialAnalysis, setLoadingFacialAnalysis] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -64,6 +67,24 @@ const Results = () => {
     // Also load interview data if not already loaded
     if (!currentInterview) {
       await getInterviewById(id);
+    }
+
+    // Load facial analysis data
+    await loadFacialAnalysis();
+  };
+
+  const loadFacialAnalysis = async () => {
+    try {
+      setLoadingFacialAnalysis(true);
+      const response = await facialAnalysisAPI.getByInterview(id);
+      if (response.data.success) {
+        setFacialAnalysisData(response.data.data);
+      }
+    } catch (error) {
+      console.log('No facial analysis data available:', error.message);
+      setFacialAnalysisData(null);
+    } finally {
+      setLoadingFacialAnalysis(false);
     }
   };
 
@@ -220,7 +241,9 @@ const Results = () => {
     passed: results.passed,
     passedType: typeof results.passed,
     calculatedPassed: results.overallScore >= 60,
-    shouldPass: (results.passed !== undefined ? results.passed : results.overallScore >= 60)
+    shouldPass: (results.passed !== undefined ? results.passed : results.overallScore >= 60),
+    facialAnalysisData: facialAnalysisData,
+    loadingFacialAnalysis: loadingFacialAnalysis
   });
 
   return (
@@ -433,6 +456,156 @@ const Results = () => {
           )}
         </div>
       </Card>
+
+      {/* Facial Analysis Section */}
+      {facialAnalysisData?.overallFacialAnalysis ? (
+        <Card animate delay={0.15}>
+          <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
+            <Award className="w-6 h-6 mr-2 text-violet-400" />
+            Facial Analysis & Presentation
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="w-12 h-12 bg-blue-500/20 backdrop-blur-sm border border-blue-500/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Target className="w-6 h-6 text-blue-400" />
+              </div>
+              <p className="text-sm text-gray-300 mb-1">Confidence</p>
+              <p className="text-xl font-bold text-white">{facialAnalysisData.overallFacialAnalysis.averageConfidence}%</p>
+            </motion.div>
+
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="w-12 h-12 bg-emerald-500/20 backdrop-blur-sm border border-emerald-500/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <CheckCircle className="w-6 h-6 text-emerald-400" />
+              </div>
+              <p className="text-sm text-gray-300 mb-1">Eye Contact</p>
+              <p className="text-xl font-bold text-white">{facialAnalysisData.overallFacialAnalysis.averageEyeContact}%</p>
+            </motion.div>
+
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="w-12 h-12 bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <BarChart3 className="w-6 h-6 text-amber-400" />
+              </div>
+              <p className="text-sm text-gray-300 mb-1">Speech Clarity</p>
+              <p className="text-xl font-bold text-white">{facialAnalysisData.overallFacialAnalysis.averageSpeechClarity}%</p>
+            </motion.div>
+
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="w-12 h-12 bg-violet-500/20 backdrop-blur-sm border border-violet-500/30 rounded-lg flex items-center justify-center mx-auto mb-2">
+                <Award className="w-6 h-6 text-violet-400" />
+              </div>
+              <p className="text-sm text-gray-300 mb-1">Overall Score</p>
+              <p className="text-xl font-bold text-white">{facialAnalysisData.overallFacialAnalysis.averageOverallScore}%</p>
+            </motion.div>
+          </div>
+
+          {/* Emotion Analysis */}
+          {facialAnalysisData.overallFacialAnalysis.averageEmotions && (
+            <div className="mb-6">
+              <h4 className="text-lg font-medium text-white mb-4">
+                Emotional Expression 
+                <span className="text-sm text-gray-400 ml-2">
+                  (Dominant: {facialAnalysisData.overallFacialAnalysis.dominantEmotion})
+                </span>
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {Object.entries(facialAnalysisData.overallFacialAnalysis.averageEmotions).map(([emotion, percentage], index) => (
+                  <motion.div
+                    key={emotion}
+                    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-3"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 + index * 0.05 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white capitalize">{emotion}</span>
+                      <span className="text-sm text-gray-300">{Math.round(percentage)}%</span>
+                    </div>
+                    <ProgressBar
+                      value={percentage}
+                      variant={percentage > 50 ? "success" : percentage > 25 ? "warning" : "danger"}
+                      size="sm"
+                      animate
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Insights Section */}
+          {facialAnalysisData.insights && facialAnalysisData.insights.length > 0 && (
+            <div className="mb-6">
+              <h4 className="text-lg font-medium text-white mb-4">Key Insights</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {facialAnalysisData.insights.map((insight, index) => (
+                  <motion.div
+                    key={index}
+                    className={`p-4 rounded-lg border ${
+                      insight.type === 'improvement' 
+                        ? 'bg-blue-500/10 border-blue-500/30' 
+                        : 'bg-amber-500/10 border-amber-500/30'
+                    }`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 + index * 0.1 }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-white capitalize">
+                        {insight.category}
+                      </span>
+                      <Badge variant={insight.score >= 70 ? "success" : insight.score >= 50 ? "warning" : "danger"}>
+                        {insight.score}%
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-300">{insight.message}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          
+        </Card>
+      ) : (
+        /* No Facial Analysis Available */
+        <Card animate delay={0.15}>
+          <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
+            <Award className="w-6 h-6 mr-2 text-gray-400" />
+            Facial Analysis & Presentation
+          </h2>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-gray-500/20 backdrop-blur-sm border border-gray-500/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Award className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">No Video Analysis Available</h3>
+            <p className="text-gray-300 text-sm">
+              Facial analysis data is not available for this interview. 
+              This feature requires video recording during the interview.
+            </p>
+          </div>
+        </Card>
+      )}
 
       {/* Strengths and Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
