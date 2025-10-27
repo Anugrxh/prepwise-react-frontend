@@ -41,6 +41,7 @@ const Interview = () => {
   const [recordedVideo, setRecordedVideo] = useState(null);
   const [isProcessingFacialAnalysis, setIsProcessingFacialAnalysis] =
     useState(false);
+  const [facialAnalysisCompleted, setFacialAnalysisCompleted] = useState(false);
   const textareaRef = useRef(null);
 
   // --- Vapi State ---
@@ -524,6 +525,7 @@ Welcome to your interview! We'll be going through ${
     console.log("Video recorded:", videoFile);
     if (videoFile && videoFile.size > 0) {
       setRecordedVideo(videoFile);
+      setFacialAnalysisCompleted(false); // Reset completion state
       console.log(
         "✅ Video file saved successfully:",
         videoFile.name,
@@ -532,8 +534,13 @@ Welcome to your interview! We'll be going through ${
         "bytes"
       );
 
-      // Don't process immediately - save for interview submission
-      console.log("🎥 Video saved for processing during interview submission");
+      // Auto-trigger facial analysis when video is ready
+      console.log("🎥 Auto-triggering facial analysis...");
+      setTimeout(() => {
+        processFacialAnalysis(videoFile).catch((error) => {
+          console.error("Auto facial analysis failed:", error);
+        });
+      }, 500); // Small delay to ensure state is updated
     } else {
       console.log("⚠️ No video data recorded or empty file");
     }
@@ -604,6 +611,7 @@ Welcome to your interview! We'll be going through ${
 
       console.log("🎥 Database update response:", updateResponse.data);
       console.log("✅ Facial analysis completed successfully");
+      setFacialAnalysisCompleted(true);
       return facialResult;
     } catch (error) {
       console.error("❌ Facial analysis failed:", {
@@ -623,6 +631,8 @@ Welcome to your interview! We'll be going through ${
         console.error("🎥 Unknown error during facial analysis");
       }
 
+      // Mark as completed even if failed (don't block submission)
+      setFacialAnalysisCompleted(true);
       return null;
     } finally {
       setIsProcessingFacialAnalysis(false);
@@ -630,6 +640,17 @@ Welcome to your interview! We'll be going through ${
   };
 
   const handleSubmitAllAnswers = async () => {
+    // Check if facial analysis is still processing
+    if (
+      recordedVideo &&
+      !facialAnalysisCompleted &&
+      isProcessingFacialAnalysis
+    ) {
+      console.log("🎥 Waiting for facial analysis to complete...");
+      alert("Please wait for video analysis to complete before submitting.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Stop video recording if active and wait for video to be processed
@@ -1089,9 +1110,24 @@ Welcome to your interview! We'll be going through ${
               ) : (
                 <button
                   onClick={() => setShowConfirmSubmit(true)}
-                  className="btn btn-success"
+                  disabled={
+                    recordedVideo &&
+                    !facialAnalysisCompleted &&
+                    isProcessingFacialAnalysis
+                  }
+                  className={`btn ${
+                    recordedVideo &&
+                    !facialAnalysisCompleted &&
+                    isProcessingFacialAnalysis
+                      ? "btn-outline opacity-50 cursor-not-allowed"
+                      : "btn-success"
+                  }`}
                 >
-                  Submit Interview
+                  {recordedVideo &&
+                  !facialAnalysisCompleted &&
+                  isProcessingFacialAnalysis
+                    ? "Processing Video..."
+                    : "Submit Interview"}
                 </button>
               )}
             </div>
@@ -1142,13 +1178,28 @@ Welcome to your interview! We'll be going through ${
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                   <span className="text-sm text-blue-200">
-                    🧠 Processing facial analysis...
+                    🧠 Processing facial analysis... (Please wait before
+                    submitting)
                   </span>
                 </div>
               </div>
             )}
 
-            {recordedVideo && !isProcessingFacialAnalysis && (
+            {/* Facial Analysis Completed */}
+            {recordedVideo &&
+              facialAnalysisCompleted &&
+              !isProcessingFacialAnalysis && (
+                <div className="mt-4 p-3 bg-green-500/10 backdrop-blur-sm border border-green-500/30 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 bg-green-400 rounded-full"></div>
+                    <span className="text-sm text-green-200">
+                      ✅ Facial analysis completed - Ready to submit
+                    </span>
+                  </div>
+                </div>
+              )}
+
+            {/* {recordedVideo && !isProcessingFacialAnalysis && (
               <div className="mt-4 p-3 bg-green-500/10 backdrop-blur-sm border border-green-500/30 rounded-lg">
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 bg-green-400 rounded-full"></div>
@@ -1161,178 +1212,9 @@ Welcome to your interview! We'll be going through ${
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
 
-            {/* Debug Info - Remove in production */}
-            {process.env.NODE_ENV === "development" && (
-              <div className="mt-4 p-3 bg-gray-500/10 backdrop-blur-sm border border-gray-500/30 rounded-lg text-xs">
-                <div className="text-white mb-2">
-                  <strong>🔧 Debug Info:</strong>
-                </div>
-                <div className="text-gray-300 space-y-1">
-                  <div>Recording: {webcamEnabled ? "ON" : "OFF"}</div>
-                  <div>Video File: {recordedVideo ? "YES" : "NO"}</div>
-                  <div>
-                    Processing: {isProcessingFacialAnalysis ? "YES" : "NO"}
-                  </div>
-                  {recordedVideo && (
-                    <div>File Size: {recordedVideo.size} bytes</div>
-                  )}
-                </div>
-                <div className="mt-2 space-y-1">
-                  <button
-                    onClick={() => {
-                      console.log("🔧 Current video state:", {
-                        hasVideo: !!recordedVideo,
-                        videoSize: recordedVideo?.size,
-                        videoName: recordedVideo?.name,
-                        isRecording: webcamEnabled,
-                      });
-                      alert(
-                        `Video State:\nHas Video: ${!!recordedVideo}\nRecording: ${webcamEnabled}\nSize: ${
-                          recordedVideo?.size || "N/A"
-                        }`
-                      );
-                    }}
-                    className="btn btn-sm btn-outline w-full text-xs"
-                  >
-                    🔍 Check Video State
-                  </button>
-                  <button
-                    onClick={async () => {
-                      console.log("🔧 Testing Django server connection...");
-                      try {
-                        const response = await fetch("http://localhost:8000/");
-                        console.log(
-                          "🔧 Django server response:",
-                          response.status
-                        );
-                        alert(
-                          `Django server: ${
-                            response.ok ? "ONLINE" : "OFFLINE"
-                          } (${response.status})`
-                        );
-                      } catch (error) {
-                        console.error("🔧 Django server test failed:", error);
-                        alert("Django server: OFFLINE - " + error.message);
-                      }
-                    }}
-                    className="btn btn-sm btn-outline w-full text-xs"
-                  >
-                    🌐 Test Django Server
-                  </button>
-                  <button
-                    onClick={async () => {
-                      console.log("🔧 Testing Django API expectations...");
-                      try {
-                        // Create a minimal test file
-                        const testData = new Uint8Array([
-                          0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x69,
-                          0x73, 0x6f, 0x6d, 0x00, 0x00, 0x02, 0x00, 0x69, 0x73,
-                          0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32, 0x61, 0x76, 0x63,
-                          0x31, 0x6d, 0x70, 0x34, 0x31,
-                        ]);
-                        const testFile = new File([testData], "test.mp4", {
-                          type: "video/mp4",
-                        });
-
-                        // Test different field names and approaches
-                        const tests = [
-                          { name: "video", file: testFile, headers: {} },
-                          { name: "file", file: testFile, headers: {} },
-                          { name: "video_file", file: testFile, headers: {} },
-                          {
-                            name: "video",
-                            file: testFile,
-                            headers: { "Content-Type": "multipart/form-data" },
-                          },
-                        ];
-
-                        for (const test of tests) {
-                          console.log(`🔧 Testing field name: "${test.name}"`);
-
-                          const formData = new FormData();
-                          formData.append(test.name, test.file);
-
-                          const response = await fetch(
-                            "http://localhost:8000/api/facial-analysis/",
-                            {
-                              method: "POST",
-                              body: formData,
-                              headers: test.headers,
-                            }
-                          );
-
-                          const result = await response.text();
-                          console.log(
-                            `🔧 Field "${test.name}": ${response.status} - ${result}`
-                          );
-
-                          if (response.ok) {
-                            alert(`SUCCESS! Use field name: "${test.name}"`);
-                            return;
-                          }
-                        }
-
-                        alert("All tests failed. Check console for details.");
-                      } catch (error) {
-                        console.error("🔧 API test failed:", error);
-                        alert("API test failed: " + error.message);
-                      }
-                    }}
-                    className="btn btn-sm btn-outline w-full text-xs"
-                  >
-                    🧪 Test Django API
-                  </button>
-                  {recordedVideo && (
-                    <>
-                      <button
-                        onClick={async () => {
-                          console.log("🔧 Analyzing recorded video file...");
-
-                          // Read first few bytes to check file signature
-                          const arrayBuffer = await recordedVideo.arrayBuffer();
-                          const uint8Array = new Uint8Array(
-                            arrayBuffer.slice(0, 20)
-                          );
-                          const header = Array.from(uint8Array)
-                            .map((b) => b.toString(16).padStart(2, "0"))
-                            .join(" ");
-
-                          console.log("🔧 File analysis:", {
-                            name: recordedVideo.name,
-                            size: recordedVideo.size,
-                            type: recordedVideo.type,
-                            header: header,
-                            isWebM: header.includes("1a 45 df a3"), // WebM signature
-                            isMP4: header.includes("66 74 79 70"), // MP4 signature
-                          });
-
-                          alert(
-                            `File: ${recordedVideo.name}\nSize: ${recordedVideo.size} bytes\nType: ${recordedVideo.type}\nHeader: ${header}`
-                          );
-                        }}
-                        className="btn btn-sm btn-outline w-full text-xs"
-                      >
-                        🔍 Analyze File
-                      </button>
-                      <button
-                        onClick={() => {
-                          console.log(
-                            "🔧 Manual facial analysis test triggered"
-                          );
-                          processFacialAnalysis(recordedVideo);
-                        }}
-                        disabled={isProcessingFacialAnalysis}
-                        className="btn btn-sm btn-outline w-full text-xs"
-                      >
-                        🧪 Test Facial Analysis
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            
           </div>
 
           <div className="card">
