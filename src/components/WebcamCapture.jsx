@@ -186,7 +186,7 @@ const WebcamCapture = ({ onCapture, onVideoRecorded, isRecording = false, classN
           <>
             <Webcam
               ref={webcamRef}
-              audio={true}
+              audio={false}
               screenshotFormat="image/jpeg"
               videoConstraints={videoConstraints}
               onUserMedia={handleUserMedia}
