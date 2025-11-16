@@ -22,6 +22,13 @@ const WebcamCapture = ({ onCapture, onVideoRecorded, isRecording = false, classN
     // Set up MediaRecorder for video recording
     if (stream && typeof MediaRecorder !== 'undefined') {
       try {
+        // Remove audio tracks from the stream to record video only
+        const videoStream = new MediaStream();
+        stream.getVideoTracks().forEach(track => {
+          videoStream.addTrack(track);
+        });
+        console.log('🎥 Audio muted - recording video only');
+        
         // Use WebM format (most reliable) and let Django handle it
         let mimeType = 'video/webm;codecs=vp8';
         
@@ -33,7 +40,7 @@ const WebcamCapture = ({ onCapture, onVideoRecorded, isRecording = false, classN
         
         console.log('🎥 Using MIME type:', mimeType);
         
-        const mediaRecorder = new MediaRecorder(stream, {
+        const mediaRecorder = new MediaRecorder(videoStream, {
           mimeType: mimeType
         });
         
