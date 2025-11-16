@@ -98,7 +98,8 @@ export const facialAnalysisAPI = {
     formData.append('video', videoFile);
 
     // Send exactly like Django test script (with trailing slash)
-    return axios.post('http://localhost:8000/api/facial-analysis/', formData, {
+    const DJANGO_URL = import.meta.env.VITE_DJANGO_URL || 'http://localhost:8000';
+    return axios.post(`${DJANGO_URL}/api/facial-analysis/`, formData, {
       timeout: 60000,
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
