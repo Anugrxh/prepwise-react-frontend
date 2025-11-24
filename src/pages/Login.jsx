@@ -11,6 +11,7 @@ const Login = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [localError, setLocalError] = useState(null);
 
   const { login, loading, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -25,8 +26,10 @@ const Login = () => {
   }, [isAuthenticated, navigate, from]);
 
   useEffect(() => {
+    // Clear error only on component mount
     clearError();
-  }, [clearError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - runs only once on mount
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,9 +41,15 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLocalError(null);
+    console.log('🔐 Login attempt with:', formData.email);
     const result = await login(formData);
+    console.log('🔐 Login result:', result);
     if (result.success) {
       navigate(from, { replace: true });
+    } else {
+      console.log('🔐 Login failed, error should be displayed');
+      setLocalError(result.error || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -80,6 +89,17 @@ const Login = () => {
               Sign in to continue your interview preparation
             </motion.p>
           </div>
+
+          {/* Error Alert */}
+          {(error || localError) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-3 bg-red-500/10 backdrop-blur-sm border border-red-500/30 rounded-lg"
+            >
+              <p className="text-sm text-red-200">{error || localError}</p>
+            </motion.div>
+          )}
 
           {/* Form */}
           <motion.form
@@ -125,12 +145,7 @@ const Login = () => {
                   >
                     Password
                   </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
+                 
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -159,6 +174,7 @@ const Login = () => {
                     )}
                   </button>
                 </div>
+                
               </div>
             </div>
 
@@ -182,6 +198,12 @@ const Login = () => {
                 </>
               )}
             </motion.button>
+             <Link
+                    to="/forgot-password"
+                    className="text-sm font-medium text-primary-400 hover:text-primary-300 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
 
             {/* Sign up link */}
             <div className="text-center pt-4">

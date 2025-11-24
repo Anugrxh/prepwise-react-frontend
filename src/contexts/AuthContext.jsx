@@ -74,7 +74,10 @@ export const AuthProvider = ({ children }) => {
       toast.success(`Welcome back, ${userData.name}!`);
       return { success: true };
     } catch (error) {
+      console.log('❌ Login error caught:', error);
+      console.log('❌ Error response:', error.response);
       const errorMessage = error.response?.data?.message || "Login failed";
+      console.log('❌ Setting error message:', errorMessage);
       setError(errorMessage);
       toast.error(errorMessage);
       return { success: false, error: errorMessage };

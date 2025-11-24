@@ -29,10 +29,19 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect on 401 if we're NOT already on the login page
+    // and if there was a token (meaning user was logged in)
     if (error.response?.status === 401) {
+      const hadToken = localStorage.getItem("token");
+      const isLoginPage = window.location.pathname === "/login";
+      
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      
+      // Only redirect if user was logged in and not on login page
+      if (hadToken && !isLoginPage) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

@@ -290,7 +290,7 @@ const InterviewSetup = () => {
                 type="number"
                 name="numberOfQuestions"
                 min="3"
-                max="15"
+                max="20"
                 value={formData.numberOfQuestions}
                 onChange={handleChange}
                 className={`input ${
@@ -300,7 +300,7 @@ const InterviewSetup = () => {
                 }`}
               />
               <p className="mt-1 text-sm text-gray-300">
-                Choose between 3 and 10 questions for your interview.
+                Choose between 3 and 20 questions for your interview.
               </p>
               {validationErrors.numberOfQuestions && (
                 <p className="mt-1 text-sm text-danger-600">
