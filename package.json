@@ -12,6 +12,7 @@
   "dependencies": {
     "@vapi-ai/web": "^2.4.0",
     "axios": "^1.6.2",
+    "dotenv": "^17.2.3",
     "framer-motion": "^10.16.16",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",

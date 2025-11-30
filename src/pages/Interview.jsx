@@ -9,8 +9,8 @@ import WebcamCapture from "../components/WebcamCapture.jsx";
 import { facialAnalysisAPI, answerAPI } from "../services/api.jsx";
 
 // --- Vapi Configuration ---
-const VAPI_PUBLIC_KEY = "32737436-6ff6-4c55-af8e-72157ef94a55";
-const VAPI_ASSISTANT_ID = "0292c649-7d1e-4ebb-9044-72f80b123067";
+const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY;
+const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
 const Interview = () => {
   const { id } = useParams();
