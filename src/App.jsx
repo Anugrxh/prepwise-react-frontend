@@ -19,6 +19,8 @@ import LoadingSpinner from "./components/LoadingSpinner.jsx";
 // Lazy load pages for better performance
 const Login = React.lazy(() => import("./pages/Login.jsx"));
 const Register = React.lazy(() => import("./pages/Register.jsx"));
+const ForgotPassword = React.lazy(() => import("./pages/ForgotPassword.jsx"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword.jsx"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard.jsx"));
 const InterviewSetup = React.lazy(() => import("./pages/InterviewSetup.jsx"));
 const Interview = React.lazy(() => import("./pages/Interview.jsx"));
@@ -50,6 +52,8 @@ function AppContent() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route
               path="/"
               element={<Navigate to="/dashboard" replace />}

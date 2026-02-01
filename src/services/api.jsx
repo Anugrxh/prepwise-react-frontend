@@ -29,10 +29,19 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only redirect on 401 if we're NOT already on the login page
+    // and if there was a token (meaning user was logged in)
     if (error.response?.status === 401) {
+      const hadToken = localStorage.getItem("token");
+      const isLoginPage = window.location.pathname === "/login";
+      
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      window.location.href = "/login";
+      
+      // Only redirect if user was logged in and not on login page
+      if (hadToken && !isLoginPage) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }
@@ -45,6 +54,9 @@ export const authAPI = {
   logout: () => api.post("/auth/logout"),
   getCurrentUser: () => api.get("/auth/me"),
   refreshToken: (refreshToken) => api.post("/auth/refresh", { refreshToken }),
+  forgotPassword: (data) => api.post("/auth/forgot-password", data),
+  verifyOtp: (data) => api.post("/auth/verify-otp", data),
+  resetPassword: (data) => api.post("/auth/reset-password", data),
 };
 
 // Interview API
@@ -79,10 +91,10 @@ export const facialAnalysisAPI = {
       size: videoFile.size,
       type: videoFile.type
     });
-    
+
     // Create FormData exactly like Postman
     const formData = new FormData();
-    
+
     // Send original file format (WebM is fine, Django can handle it)
     console.log('📤 Sending original video file to Django:', {
       name: videoFile.name,
@@ -90,12 +102,13 @@ export const facialAnalysisAPI = {
       type: videoFile.type,
       isOriginalFormat: true
     });
-    
+
     // Add original file to FormData
     formData.append('video', videoFile);
-    
+
     // Send exactly like Django test script (with trailing slash)
-    return axios.post('http://localhost:8000/api/facial-analysis/', formData, {
+    const DJANGO_URL = import.meta.env.VITE_DJANGO_URL || 'http://localhost:8000';
+    return axios.post(`${DJANGO_URL}/api/facial-analysis/`, formData, {
       timeout: 60000,
       onUploadProgress: (progressEvent) => {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -114,7 +127,7 @@ export const facialAnalysisAPI = {
       throw error;
     });
   },
-  
+
   // Get facial analysis data for an interview
   getByInterview: (interviewId) => {
     console.log('📥 Fetching facial analysis for interview:', interviewId);
