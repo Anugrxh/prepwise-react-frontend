@@ -11,7 +11,7 @@ A cutting-edge React frontend for the PrepWise AI-powered interview preparation 
 - **Violet Color Palette**: Modern purple/violet accent colors throughout
 - **Consistent Dark UI**: All components optimized for dark theme visibility
 
-### 🎤 Voice-Powered Interviews
+### 🎤 Voice-Powered Interviews  
 
 - **Vapi AI Integration**: Real-time speech-to-text during interviews
 - **Live Transcription**: See your spoken answers appear in real-time
